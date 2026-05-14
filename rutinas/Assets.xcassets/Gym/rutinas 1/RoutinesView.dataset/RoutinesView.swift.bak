@@ -1,0 +1,1555 @@
+import SwiftUI
+
+struct RoutinesView: View {
+    @Environment(WorkoutManager.self) var manager
+    @State private var showArchived = false
+    @State private var showCreate = false
+    @State private var showReorder = false
+    @State private var showCatalog = false
+
+    private var activeRoutines: [DayVariant] {
+        manager.routines.filter { !$0.isArchived }
+    }
+    private var archivedRoutines: [DayVariant] {
+        manager.routines.filter { $0.isArchived }
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.dsCanvas.ignoresSafeArea()
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        // Header
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("REGISTRO DE PROGRAMAS · \(activeRoutines.count) ACTIVAS")
+                                .font(.geist(9, weight: .semiBold))
+                                .foregroundStyle(Color.dsFg3)
+                                .tracking(1.8)
+                            Text("RUTINAS")
+                                .font(.geist(28, weight: .bold))
+                                .foregroundStyle(Color.dsFg1)
+                                .tracking(0.5)
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 16)
+                        .padding(.bottom, 24)
+
+                        // Rutinas activas
+                        VStack(spacing: 0) {
+                            ForEach(Array(activeRoutines.enumerated()), id: \.element.id) { i, routine in
+                                if i > 0 {
+                                    Rectangle().fill(Color.dsHairline).frame(height: 1)
+                                }
+                                RoutineListRow(
+                                    routine: routine,
+                                    isToday: routine.id == manager.todayRoutine.id,
+                                    onArchive: { manager.toggleArchive(routine) },
+                                    onDelete: { manager.deleteRoutine(routine) }
+                                )
+                            }
+                        }
+
+                        // Archivadas
+                        if !archivedRoutines.isEmpty {
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.2)) { showArchived.toggle() }
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Text("ARCHIVADAS")
+                                        .font(.geist(9, weight: .semiBold))
+                                        .foregroundStyle(Color.dsFg3)
+                                        .tracking(1.8)
+                                    Text("[\(archivedRoutines.count)]")
+                                        .font(.geist(9, weight: .medium))
+                                        .foregroundStyle(Color.dsFg4)
+                                    Spacer()
+                                    Image(systemName: showArchived ? "chevron.up" : "chevron.down")
+                                        .font(.system(size: 10, weight: .medium))
+                                        .foregroundStyle(Color.dsFg4)
+                                }
+                                .padding(.horizontal, 20)
+                                .padding(.top, 28)
+                                .padding(.bottom, 12)
+                            }
+                            .buttonStyle(.plain)
+
+                            if showArchived {
+                                VStack(spacing: 0) {
+                                    ForEach(Array(archivedRoutines.enumerated()), id: \.element.id) { i, routine in
+                                        if i > 0 {
+                                            Rectangle().fill(Color.dsHairline).frame(height: 1)
+                                        }
+                                        RoutineListRow(
+                                            routine: routine,
+                                            isToday: false,
+                                            onArchive: { manager.toggleArchive(routine) },
+                                            onDelete: { manager.deleteRoutine(routine) }
+                                        )
+                                        .opacity(0.45)
+                                    }
+                                }
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                            }
+                        }
+
+                        Spacer().frame(height: 60)
+                    }
+                }
+            }
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    HStack(spacing: 16) {
+                        if manager.routines.filter({ !$0.isArchived }).count > 1 {
+                            Button { showReorder = true } label: {
+                                Image(systemName: "arrow.up.arrow.down")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundStyle(Color.dsFg2)
+                            }
+                        }
+                        Button { showCatalog = true } label: {
+                            Image(systemName: "plus")
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundStyle(Color.dsNaranja)
+                        }
+                    }
+                }
+            }
+            .sheet(isPresented: $showReorder) { ReorderRoutinesSheet() }
+            .sheet(isPresented: $showCreate) {
+                CreateRoutineSheet(existingCount: manager.routines.count) { newRoutine in
+                    manager.addRoutine(newRoutine)
+                }
+            }
+            .sheet(isPresented: $showCatalog) {
+                CatalogPickerSheet { newRoutine in
+                    manager.addRoutine(newRoutine)
+                    showCatalog = false
+                }
+            }
+        }
+    }
+}
+
+// MARK: — Routine list row
+
+private struct RoutineListRow: View {
+    let routine: DayVariant
+    let isToday: Bool
+    let onArchive: () -> Void
+    let onDelete: () -> Void
+
+    private var focusText: String {
+        routine.muscleGroups.map(\.name).joined(separator: " · ")
+    }
+
+    var body: some View {
+        NavigationLink {
+            RoutineDetailView(routine: routine)
+        } label: {
+            HStack(spacing: 16) {
+                DayNumeral(dayNumber: routine.dayNumber, variant: routine.variant, size: 44)
+                    .frame(width: 64, alignment: .leading)
+
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(focusText.uppercased())
+                        .font(.geist(13, weight: .semiBold))
+                        .foregroundStyle(Color.dsFg1)
+                        .tracking(0.3)
+                        .lineLimit(1)
+                    HStack(spacing: 8) {
+                        Text("\(routine.muscleGroups.flatMap(\.exercises).count) EJ")
+                            .font(.geist(10, weight: .regular))
+                            .foregroundStyle(Color.dsFg4)
+                        if isToday {
+                            Text("· HOY")
+                                .font(.geist(10, weight: .semiBold))
+                                .foregroundStyle(Color.dsNaranja)
+                                .tracking(0.8)
+                        }
+                        if routine.isArchived {
+                            Text("· ARCHIVADA")
+                                .font(.geist(10, weight: .regular))
+                                .foregroundStyle(Color.dsFg4)
+                                .tracking(0.6)
+                        }
+                    }
+                }
+
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Color.dsFg4)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 18)
+        }
+        .buttonStyle(.plain)
+        .contextMenu {
+            Button {
+                withAnimation { onArchive() }
+            } label: {
+                Label(
+                    routine.isArchived ? "Activar" : "Archivar",
+                    systemImage: routine.isArchived ? "arrow.uturn.up" : "archivebox"
+                )
+            }
+            Divider()
+            Button(role: .destructive) {
+                withAnimation { onDelete() }
+            } label: {
+                Label("Eliminar rutina", systemImage: "trash")
+            }
+        }
+    }
+}
+
+// MARK: — Routine detail
+
+struct RoutineDetailView: View {
+    @Environment(WorkoutManager.self) var manager
+    @State var routine: DayVariant
+    @State private var showAddExercise = false
+    @State private var targetGroupID: UUID?
+    @State private var showAddGroup = false
+    @State private var newGroupName = ""
+    @State private var progressExercise: Exercise?
+    @State private var editMode: EditMode = .inactive
+
+    private var focusText: String {
+        routine.muscleGroups.map(\.name).joined(separator: " · ")
+    }
+
+    var body: some View {
+        ZStack {
+            Color.dsCanvas.ignoresSafeArea()
+            List {
+                Section {
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack(alignment: .bottom) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("DÍA")
+                                    .font(.geist(9, weight: .semiBold))
+                                    .foregroundStyle(Color.dsFg3)
+                                    .tracking(2)
+                                DayNumeral(dayNumber: routine.dayNumber, variant: routine.variant, size: 60)
+                            }
+                            Spacer()
+                            VStack(alignment: .trailing, spacing: 5) {
+                                Text(focusText.uppercased())
+                                    .font(.geist(12, weight: .semiBold))
+                                    .foregroundStyle(Color.dsFg1)
+                                    .tracking(0.3)
+                                    .multilineTextAlignment(.trailing)
+                                Text("\(routine.muscleGroups.flatMap(\.exercises).count) EJERCICIOS")
+                                    .font(.geist(10, weight: .regular))
+                                    .foregroundStyle(Color.dsFg4)
+                                    .tracking(0.5)
+                            }
+                        }
+
+                        // Muscle chips
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 4) {
+                                ForEach(routine.muscleGroups, id: \.id) { group in
+                                    Text(group.name.uppercased())
+                                        .font(.geist(9, weight: .semiBold))
+                                        .foregroundStyle(Color.dsFg3)
+                                        .tracking(1.2)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 5)
+                                        .background(Color.dsCard)
+                                        .clipShape(RoundedRectangle(cornerRadius: 2))
+                                        .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(Color.dsHairline, lineWidth: 1))
+                                }
+                            }
+                        }
+                    }
+                    .listRowBackground(Color.dsCanvas)
+                    .listRowSeparator(.hidden)
+                    .padding(.vertical, 8)
+                }
+
+                ForEach($routine.muscleGroups) { $group in
+                    Section {
+                        ForEach($group.exercises) { $ex in
+                            ExerciseEditRow(
+                                exercise: $ex,
+                                onSave: { manager.updateRoutine(routine) },
+                                onShowProgress: { progressExercise = $0 }
+                            )
+                            .listRowBackground(Color.dsCanvas)
+                            .listRowSeparatorTint(Color.dsHairline)
+                        }
+                        .onDelete { idx in
+                            group.exercises.remove(atOffsets: idx)
+                            manager.updateRoutine(routine)
+                        }
+                        .onMove { from, to in
+                            group.exercises.move(fromOffsets: from, toOffset: to)
+                            manager.updateRoutine(routine)
+                        }
+                        Button {
+                            targetGroupID = group.id
+                            showAddExercise = true
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 11, weight: .semibold))
+                                Text("AGREGAR EJERCICIO")
+                                    .font(.geist(11, weight: .semiBold))
+                                    .tracking(0.8)
+                            }
+                            .foregroundStyle(Color.dsNaranja)
+                        }
+                        .listRowBackground(Color.dsCanvas)
+                        .listRowSeparator(.hidden)
+                    } header: {
+                        HStack {
+                            Text(group.name.uppercased())
+                                .font(.geist(9, weight: .semiBold))
+                                .foregroundStyle(Color.dsFg3)
+                                .tracking(1.8)
+                            Spacer()
+                            Button(role: .destructive) {
+                                routine.muscleGroups.removeAll { $0.id == group.id }
+                                manager.updateRoutine(routine)
+                            } label: {
+                                Image(systemName: "trash")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(Color.dsRojo)
+                            }
+                        }
+                    }
+                }
+
+                Button { showAddGroup = true } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 11, weight: .semibold))
+                        Text("AGREGAR GRUPO MUSCULAR")
+                            .font(.geist(11, weight: .semiBold))
+                            .tracking(0.8)
+                    }
+                    .foregroundStyle(Color.dsFg2)
+                }
+                .listRowBackground(Color.dsCanvas)
+                .listRowSeparator(.hidden)
+            }
+            .scrollContentBackground(.hidden)
+            .listStyle(.plain)
+            .environment(\.editMode, $editMode)
+        }
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(editMode == .active ? "LISTO" : "EDITAR") {
+                    withAnimation { editMode = editMode == .active ? .inactive : .active }
+                }
+                .font(.geist(12, weight: editMode == .active ? .semiBold : .regular))
+                .tracking(0.6)
+                .foregroundStyle(editMode == .active ? Color.dsNaranja : Color.dsFg2)
+            }
+        }
+        .navigationDestination(item: $progressExercise) { exercise in
+            ExerciseProgressView(exercise: exercise)
+        }
+        .sheet(isPresented: $showAddExercise) {
+            AddExerciseSheet { name, sets, reps in
+                guard let idx = routine.muscleGroups.firstIndex(where: { $0.id == targetGroupID }) else { return }
+                routine.muscleGroups[idx].exercises.append(Exercise(name: name, sets: sets, reps: reps))
+                manager.updateRoutine(routine)
+            }
+        }
+        .dsAlert(isPresented: $showAddGroup) {
+            DSAlert(
+                title: "Nuevo grupo muscular",
+                buttons: [
+                    DSAlertButton(label: "Agregar") {
+                        guard !newGroupName.isEmpty else { return }
+                        routine.muscleGroups.append(MuscleGroup(name: newGroupName.uppercased(), exercises: []))
+                        manager.updateRoutine(routine)
+                        newGroupName = ""
+                        showAddGroup = false
+                    },
+                    DSAlertButton(label: "Cancelar", isCancel: true) {
+                        newGroupName = ""
+                        showAddGroup = false
+                    }
+                ],
+                inputField: ("Ej: CARDIO", $newGroupName)
+            )
+        }
+    }
+}
+
+// MARK: — Exercise edit row
+
+struct ExerciseEditRow: View {
+    @Binding var exercise: Exercise
+    let onSave: () -> Void
+    let onShowProgress: (Exercise) -> Void
+    @State private var editing = false
+    @State private var eName = ""
+    @State private var eSets = ""
+    @State private var eReps = ""
+    @State private var eDesc = ""
+
+    var body: some View {
+        if editing {
+            VStack(spacing: 10) {
+                DSTextField(placeholder: "Nombre", text: $eName)
+                HStack {
+                    Text("SERIES")
+                        .font(.geist(11, weight: .semiBold))
+                        .foregroundStyle(Color.dsFg3)
+                        .tracking(1.0)
+                    Spacer()
+                    HStack(spacing: 20) {
+                        Button { if (Int(eSets) ?? 1) > 1 { eSets = "\((Int(eSets) ?? 2) - 1)" } } label: {
+                            Text("−")
+                                .font(.geist(16, weight: .semiBold))
+                                .foregroundStyle(Color.dsFg2)
+                                .frame(width: 32, height: 32)
+                                .background(Color.dsSurface)
+                                .clipShape(RoundedRectangle(cornerRadius: 3))
+                                .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color.dsHairline, lineWidth: 1))
+                        }
+                        .buttonStyle(.plain)
+                        Text(eSets)
+                            .font(.geist(17, weight: .bold))
+                            .foregroundStyle(Color.dsFg1)
+                            .frame(minWidth: 24, alignment: .center)
+                        Button { eSets = "\((Int(eSets) ?? 3) + 1)" } label: {
+                            Text("+")
+                                .font(.geist(16, weight: .semiBold))
+                                .foregroundStyle(Color.dsFg2)
+                                .frame(width: 32, height: 32)
+                                .background(Color.dsSurface)
+                                .clipShape(RoundedRectangle(cornerRadius: 3))
+                                .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color.dsHairline, lineWidth: 1))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                DSTextField(placeholder: "Descripción técnica (opcional)", text: $eDesc, lineLimit: 2...4)
+                HStack(spacing: 10) {
+                    DSSecondaryButton(label: "Cancelar") { editing = false }
+                    DSPrimaryButton(label: "Guardar") {
+                        exercise.name = eName
+                        exercise.sets = Int(eSets) ?? exercise.sets
+                        exercise.reps = eReps
+                        exercise.description = eDesc
+                        editing = false
+                        onSave()
+                    }
+                }
+            }
+            .padding(.vertical, 4)
+        } else {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(exercise.name.uppercased())
+                        .font(.geist(13, weight: .semiBold))
+                        .foregroundStyle(Color.dsFg1)
+                        .tracking(0.3)
+                    Text("\(exercise.sets) SERIES · \(exercise.reps)")
+                        .font(.geist(10, weight: .regular))
+                        .foregroundStyle(Color.dsFg3)
+                        .tracking(0.4)
+                }
+                Spacer()
+                Button { onShowProgress(exercise) } label: {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .foregroundStyle(Color.dsNaranja)
+                        .font(.system(size: 14))
+                }
+                Button {
+                    eName = exercise.name
+                    eSets = "\(exercise.sets)"
+                    eReps = exercise.reps
+                    eDesc = exercise.description
+                    editing = true
+                } label: {
+                    Image(systemName: "pencil")
+                        .foregroundStyle(Color.dsFg2)
+                        .font(.system(size: 14))
+                }
+            }
+        }
+    }
+}
+
+// MARK: — Add exercise sheet
+
+struct AddExerciseSheet: View {
+    @Environment(\.dismiss) var dismiss
+    let onAdd: (String, Int, String) -> Void
+    @State private var name = ""
+    @State private var sets = 3
+    @State private var reps = "12"
+
+    var body: some View {
+        ZStack {
+            Color.dsCanvas.ignoresSafeArea()
+            VStack(spacing: 0) {
+                sheetHandle()
+                sheetHeader(title: "NUEVO EJERCICIO", onDismiss: { dismiss() })
+
+                VStack(spacing: 14) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        DSEyebrow(text: "NOMBRE")
+                        DSTextField(placeholder: "Ej: Press banca", text: $name)
+                    }
+                    VStack(alignment: .leading, spacing: 6) {
+                        DSEyebrow(text: "SERIES")
+                        HStack {
+                            Text("\(sets) series")
+                                .font(.geist(14, weight: .regular))
+                                .foregroundStyle(Color.dsFg1)
+                            Spacer()
+                            HStack(spacing: 20) {
+                                Button { if sets > 1 { sets -= 1 } } label: {
+                                    Text("−")
+                                        .font(.geist(16, weight: .semiBold))
+                                        .foregroundStyle(Color.dsFg2)
+                                        .frame(width: 36, height: 36)
+                                        .background(Color.dsSurface)
+                                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                                        .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color.dsHairline, lineWidth: 1))
+                                }
+                                .buttonStyle(.plain)
+                                Text("\(sets)")
+                                    .font(.geist(20, weight: .bold))
+                                    .foregroundStyle(Color.dsFg1)
+                                    .frame(minWidth: 28, alignment: .center)
+                                Button { sets += 1 } label: {
+                                    Text("+")
+                                        .font(.geist(16, weight: .semiBold))
+                                        .foregroundStyle(Color.dsFg2)
+                                        .frame(width: 36, height: 36)
+                                        .background(Color.dsSurface)
+                                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                                        .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color.dsHairline, lineWidth: 1))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(Color.dsSurface)
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                        .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.dsHairline, lineWidth: 1))
+                    }
+                    VStack(alignment: .leading, spacing: 6) {
+                        DSEyebrow(text: "REPETICIONES")
+                        DSTextField(placeholder: "12", text: $reps)
+                            .keyboardType(.numbersAndPunctuation)
+                    }
+                }
+                .padding(.horizontal, 20)
+
+                Spacer()
+
+                DSPrimaryButton(label: "Agregar ejercicio") {
+                    onAdd(name, sets, reps)
+                    dismiss()
+                }
+                .disabled(name.isEmpty)
+                .opacity(name.isEmpty ? 0.35 : 1)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 32)
+            }
+        }
+        .presentationDetents([.large])
+        .presentationBackground(Color.dsCanvas)
+    }
+}
+
+// MARK: — Reorder sheet
+
+struct ReorderRoutinesSheet: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(WorkoutManager.self) var manager
+    @State private var ordered: [DayVariant] = []
+
+    var body: some View {
+        ZStack {
+            Color.dsCanvas.ignoresSafeArea()
+            VStack(spacing: 0) {
+                sheetHandle()
+                HStack {
+                    Text("ORDEN DE ROTACIÓN")
+                        .font(.geist(14, weight: .bold))
+                        .foregroundStyle(Color.dsFg1)
+                        .tracking(0.5)
+                    Spacer()
+                    Button("LISTO") {
+                        manager.reorderActiveRoutines(ids: ordered.map(\.id))
+                        dismiss()
+                    }
+                    .font(.geist(12, weight: .semiBold))
+                    .tracking(0.6)
+                    .foregroundStyle(Color.dsNaranja)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 8)
+
+                Text("Arrastrá para cambiar el orden en que rotan")
+                    .font(.geist(11, weight: .regular))
+                    .foregroundStyle(Color.dsFg4)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 16)
+
+                List {
+                    ForEach(ordered) { routine in
+                        HStack(spacing: 14) {
+                            Image(systemName: "line.3.horizontal")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(Color.dsFg4)
+                            DayNumeral(dayNumber: routine.dayNumber, variant: routine.variant, size: 32)
+                                .frame(width: 44, alignment: .leading)
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(routine.muscleGroups.map(\.name).joined(separator: " · ").uppercased())
+                                    .font(.geist(12, weight: .semiBold))
+                                    .foregroundStyle(Color.dsFg1)
+                                    .tracking(0.2)
+                                    .lineLimit(1)
+                                Text("\(routine.muscleGroups.flatMap(\.exercises).count) EJ")
+                                    .font(.geist(9, weight: .regular))
+                                    .foregroundStyle(Color.dsFg4)
+                                    .tracking(0.5)
+                            }
+                        }
+                        .padding(.vertical, 6)
+                        .listRowBackground(Color.dsCanvas)
+                        .listRowSeparatorTint(Color.dsHairline)
+                    }
+                    .onMove { from, to in ordered.move(fromOffsets: from, toOffset: to) }
+                }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .environment(\.editMode, .constant(.active))
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationBackground(Color.dsCanvas)
+        .onAppear { ordered = manager.routines.filter { !$0.isArchived } }
+    }
+}
+
+// MARK: — Create routine sheet
+
+struct CreateRoutineSheet: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(WorkoutManager.self) var manager
+    let onCreate: (DayVariant) -> Void
+
+    @State private var dayName: String = ""
+    @State private var groups: [MuscleGroup] = []
+    @State private var showAddGroup = false
+    @State private var newGroupName = ""
+    @State private var showAddExercise = false
+    @State private var showAddFromLibrary = false
+    @State private var showPickFromCatalog = false
+    @State private var targetGroupID: UUID?
+
+    private let assignedDayNumber: Int
+
+    init(existingCount: Int = 0, onCreate: @escaping (DayVariant) -> Void) {
+        self.assignedDayNumber = existingCount + 1
+        self.onCreate = onCreate
+    }
+
+    private var canCreate: Bool { !dayName.isEmpty && !groups.isEmpty && groups.allSatisfy { !$0.exercises.isEmpty } }
+
+    var body: some View {
+        ZStack {
+            Color.dsCanvas.ignoresSafeArea()
+            VStack(spacing: 0) {
+                sheetHandle()
+                sheetHeader(title: "NUEVA RUTINA", onDismiss: { dismiss() })
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            DSEyebrow(text: "NOMBRE DEL DÍA")
+                            DSTextField(placeholder: "Ej: Empuje, Piernas, Full body…", text: $dayName)
+                        }
+
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack {
+                                DSEyebrow(text: "GRUPOS MUSCULARES")
+                                Spacer()
+                                HStack(spacing: 8) {
+                                    // Desde catálogo de ejercicios (agrupar automáticamente)
+                                    if !manager.exerciseCatalog.isEmpty {
+                                        Button { showPickFromCatalog = true } label: {
+                                            HStack(spacing: 4) {
+                                                Image(systemName: "square.grid.2x2")
+                                                    .font(.system(size: 10, weight: .semibold))
+                                                Text("CATÁLOGO").font(.geist(10, weight: .semiBold)).tracking(0.8)
+                                            }
+                                            .foregroundStyle(Color.dsFg2)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .background(Color.dsCard)
+                                            .clipShape(RoundedRectangle(cornerRadius: 3))
+                                            .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color.dsHairline, lineWidth: 1))
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                    // Desde módulos de la biblioteca
+                                    if !manager.muscleGroupTemplates.isEmpty {
+                                        Button { showAddFromLibrary = true } label: {
+                                            HStack(spacing: 4) {
+                                                Image(systemName: "books.vertical")
+                                                    .font(.system(size: 10, weight: .semibold))
+                                                Text("MÓDULOS").font(.geist(10, weight: .semiBold)).tracking(0.8)
+                                            }
+                                            .foregroundStyle(Color.dsFg2)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .background(Color.dsCard)
+                                            .clipShape(RoundedRectangle(cornerRadius: 3))
+                                            .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color.dsHairline, lineWidth: 1))
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                    Button {
+                                        newGroupName = ""
+                                        showAddGroup = true
+                                    } label: {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "plus").font(.system(size: 11, weight: .semibold))
+                                            Text("NUEVO").font(.geist(10, weight: .semiBold)).tracking(0.8)
+                                        }
+                                        .foregroundStyle(Color.dsNaranja)
+                                    }
+                                }
+                            }
+
+                            if groups.isEmpty {
+                                VStack(spacing: 0) {
+                                    Text("Agregá grupos musculares")
+                                        .font(.geist(12, weight: .regular))
+                                        .foregroundStyle(Color.dsFg4)
+                                        .padding(.vertical, 16)
+                                        .frame(maxWidth: .infinity, alignment: .center)
+
+                                    if !manager.exerciseCatalog.isEmpty {
+                                        Rectangle().fill(Color.dsHairline).frame(height: 1)
+                                        Button { showPickFromCatalog = true } label: {
+                                            HStack(spacing: 6) {
+                                                Image(systemName: "square.grid.2x2")
+                                                    .font(.system(size: 12, weight: .semibold))
+                                                Text("ELEGIR EJERCICIOS DEL CATÁLOGO")
+                                                    .font(.geist(11, weight: .semiBold))
+                                                    .tracking(0.8)
+                                            }
+                                            .foregroundStyle(Color.dsNaranja)
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 10)
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                    if !manager.muscleGroupTemplates.isEmpty {
+                                        Rectangle().fill(Color.dsHairline).frame(height: 1)
+                                        Button { showAddFromLibrary = true } label: {
+                                            HStack(spacing: 6) {
+                                                Image(systemName: "books.vertical")
+                                                    .font(.system(size: 12, weight: .semibold))
+                                                Text("IMPORTAR MÓDULOS DE BIBLIOTECA")
+                                                    .font(.geist(11, weight: .semiBold))
+                                                    .tracking(0.8)
+                                            }
+                                            .foregroundStyle(Color.dsFg2)
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 10)
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                                .background(Color.dsCard)
+                                .clipShape(RoundedRectangle(cornerRadius: 4))
+                                .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.dsHairline, lineWidth: 1))
+                            } else {
+                                VStack(spacing: 8) {
+                                    ForEach($groups) { $group in
+                                        CreateGroupCard(
+                                            group: $group,
+                                            onAddExercise: {
+                                                targetGroupID = group.id
+                                                showAddExercise = true
+                                            },
+                                            onDelete: { groups.removeAll { $0.id == group.id } }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        Spacer().frame(height: 8)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 120)
+                }
+            }
+
+            VStack {
+                Spacer()
+                DSPrimaryButton(label: "Crear rutina") {
+                    let routine = DayVariant(dayNumber: assignedDayNumber, variant: "", muscleGroups: groups)
+                    onCreate(routine)
+                    dismiss()
+                }
+                .disabled(!canCreate)
+                .opacity(canCreate ? 1 : 0.35)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 32)
+                .background(
+                    LinearGradient(
+                        colors: [Color.dsCanvas.opacity(0), Color.dsCanvas],
+                        startPoint: .top, endPoint: UnitPoint(x: 0.5, y: 0.4)
+                    )
+                )
+            }
+        }
+        .presentationDetents([.large])
+        .presentationBackground(Color.dsCanvas)
+        .dsAlert(isPresented: $showAddGroup) {
+            DSAlert(
+                title: "Nuevo grupo muscular",
+                buttons: [
+                    DSAlertButton(label: "Agregar") {
+                        guard !newGroupName.isEmpty else { return }
+                        groups.append(MuscleGroup(name: newGroupName.uppercased(), exercises: []))
+                        newGroupName = ""
+                        showAddGroup = false
+                    },
+                    DSAlertButton(label: "Cancelar", isCancel: true) {
+                        newGroupName = ""
+                        showAddGroup = false
+                    }
+                ],
+                inputField: ("Ej: PECHO, PIERNAS, ABS…", $newGroupName)
+            )
+        }
+        .sheet(isPresented: $showAddExercise) {
+            AddExerciseSheet { name, sets, reps in
+                guard let idx = groups.firstIndex(where: { $0.id == targetGroupID }) else { return }
+                groups[idx].exercises.append(Exercise(name: name, sets: sets, reps: reps))
+            }
+        }
+        .sheet(isPresented: $showAddFromLibrary) {
+            AddGroupsFromLibrarySheet(existingGroupIDs: groups.compactMap { g in
+                manager.muscleGroupTemplates.first { $0.name == g.name }?.id
+            }) { selectedTemplates in
+                for template in selectedTemplates {
+                    let muscleGroup = template.toMuscleGroup(catalog: manager.exerciseCatalog)
+                    if !groups.contains(where: { $0.name == muscleGroup.name }) {
+                        groups.append(muscleGroup)
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showPickFromCatalog) {
+            PickExercisesFromCatalogSheet { selectedExercises in
+                // Agrupar automáticamente por muscleTag
+                let byTag = Dictionary(grouping: selectedExercises, by: \.muscleTag)
+                let sorted = byTag.keys.sorted()
+                for tag in sorted {
+                    let exs = (byTag[tag] ?? []).map { $0.toExercise() }
+                    let groupName = tag.isEmpty ? "GENERAL" : tag.uppercased()
+                    if let idx = groups.firstIndex(where: { $0.name == groupName }) {
+                        // Agregar al grupo existente sin duplicados
+                        let existingNames = Set(groups[idx].exercises.map { $0.name.lowercased() })
+                        let newExs = exs.filter { !existingNames.contains($0.name.lowercased()) }
+                        groups[idx].exercises.append(contentsOf: newExs)
+                    } else {
+                        groups.append(MuscleGroup(name: groupName, exercises: exs))
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: — Add groups from library sheet
+
+private struct AddGroupsFromLibrarySheet: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(WorkoutManager.self) var manager
+    let existingGroupIDs: [UUID]
+    let onAdd: ([MuscleGroupTemplate]) -> Void
+
+    @State private var selectedIDs: Set<UUID> = []
+
+    var body: some View {
+        ZStack {
+            Color.dsCanvas.ignoresSafeArea()
+            VStack(spacing: 0) {
+                sheetHandle()
+                sheetHeader(title: "DESDE BIBLIOTECA", onDismiss: { dismiss() })
+
+                if manager.muscleGroupTemplates.isEmpty {
+                    VStack(spacing: 8) {
+                        Spacer()
+                        Text("Sin grupos en la biblioteca")
+                            .font(.geist(13, weight: .regular))
+                            .foregroundStyle(Color.dsFg3)
+                        Spacer()
+                    }
+                } else {
+                    ScrollView {
+                        VStack(spacing: 0) {
+                            ForEach(Array(manager.muscleGroupTemplates.enumerated()), id: \.element.id) { i, template in
+                                if i > 0 { Rectangle().fill(Color.dsHairline).frame(height: 1) }
+                                let selected = selectedIDs.contains(template.id)
+                                let alreadyAdded = existingGroupIDs.contains(template.id)
+                                Button {
+                                    if !alreadyAdded {
+                                        if selected { selectedIDs.remove(template.id) }
+                                        else { selectedIDs.insert(template.id) }
+                                    }
+                                } label: {
+                                    HStack(spacing: 12) {
+                                        ZStack {
+                                            RoundedRectangle(cornerRadius: 3)
+                                                .fill(selected ? Color.dsNaranja : (alreadyAdded ? Color.dsSurface : Color.dsSurface))
+                                                .frame(width: 20, height: 20)
+                                                .overlay(RoundedRectangle(cornerRadius: 3)
+                                                    .strokeBorder(selected ? Color.clear : Color.dsHairline, lineWidth: 1))
+                                            if selected {
+                                                Image(systemName: "checkmark")
+                                                    .font(.system(size: 10, weight: .bold))
+                                                    .foregroundStyle(Color.dsOnPrimary)
+                                            } else if alreadyAdded {
+                                                Image(systemName: "checkmark")
+                                                    .font(.system(size: 10, weight: .bold))
+                                                    .foregroundStyle(Color.dsFg4)
+                                            }
+                                        }
+
+                                        VStack(alignment: .leading, spacing: 3) {
+                                            Text(template.name.uppercased())
+                                                .font(.geist(13, weight: .semiBold))
+                                                .foregroundStyle(alreadyAdded ? Color.dsFg3 : Color.dsFg1)
+                                                .tracking(0.3)
+                                            Text("\(template.exerciseIDs.count) EJERCICIOS")
+                                                .font(.geist(10, weight: .regular))
+                                                .foregroundStyle(Color.dsFg4)
+                                                .tracking(0.4)
+                                        }
+                                        Spacer()
+                                        if alreadyAdded {
+                                            Text("YA AGREGADO")
+                                                .font(.geist(9, weight: .semiBold))
+                                                .foregroundStyle(Color.dsFg4)
+                                                .tracking(0.8)
+                                        }
+                                    }
+                                    .padding(.horizontal, 20)
+                                    .padding(.vertical, 14)
+                                    .contentShape(Rectangle())
+                                    .background(selected ? Color.dsNaranja.opacity(0.04) : Color.clear)
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(alreadyAdded)
+                            }
+                        }
+                        .padding(.bottom, 100)
+                    }
+                }
+            }
+
+            VStack {
+                Spacer()
+                DSPrimaryButton(label: "Agregar \(selectedIDs.isEmpty ? "" : "(\(selectedIDs.count)) ")grupos") {
+                    let selected = manager.muscleGroupTemplates.filter { selectedIDs.contains($0.id) }
+                    onAdd(selected)
+                    dismiss()
+                }
+                .disabled(selectedIDs.isEmpty)
+                .opacity(selectedIDs.isEmpty ? 0.35 : 1)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 32)
+                .background(
+                    LinearGradient(
+                        colors: [Color.dsCanvas.opacity(0), Color.dsCanvas],
+                        startPoint: .top, endPoint: UnitPoint(x: 0.5, y: 0.4)
+                    )
+                )
+            }
+        }
+        .presentationDetents([.large])
+        .presentationBackground(Color.dsCanvas)
+    }
+}
+
+// MARK: — Create group card
+
+private struct CreateGroupCard: View {
+    @Binding var group: MuscleGroup
+    let onAddExercise: () -> Void
+    let onDelete: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text(group.name.uppercased())
+                    .font(.geist(10, weight: .semiBold))
+                    .foregroundStyle(Color.dsFg2)
+                    .tracking(1.2)
+                Spacer()
+                Button(action: onDelete) {
+                    Image(systemName: "trash")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.dsRojo)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(Color.dsSurface)
+
+            if !group.exercises.isEmpty {
+                VStack(spacing: 0) {
+                    ForEach(Array(group.exercises.enumerated()), id: \.element.id) { i, ex in
+                        if i > 0 { Rectangle().fill(Color.dsHairline).frame(height: 1) }
+                        HStack {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(ex.name.uppercased())
+                                    .font(.geist(12, weight: .semiBold))
+                                    .foregroundStyle(Color.dsFg1)
+                                    .tracking(0.2)
+                                Text("\(ex.sets) SERIES · \(ex.reps)")
+                                    .font(.geist(9, weight: .regular))
+                                    .foregroundStyle(Color.dsFg4)
+                                    .tracking(0.5)
+                            }
+                            Spacer()
+                            Button {
+                                group.exercises.remove(at: i)
+                            } label: {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundStyle(Color.dsFg4)
+                                    .frame(width: 26, height: 26)
+                                    .background(Color.dsCanvas)
+                                    .clipShape(RoundedRectangle(cornerRadius: 2))
+                            }
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background(Color.dsCard)
+                    }
+                }
+            }
+
+            Button(action: onAddExercise) {
+                HStack(spacing: 5) {
+                    Image(systemName: "plus").font(.system(size: 11, weight: .semibold))
+                    Text("AGREGAR EJERCICIO").font(.geist(10, weight: .semiBold)).tracking(0.8)
+                }
+                .foregroundStyle(Color.dsNaranja)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(Color.dsCard)
+            }
+            .buttonStyle(.plain)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 4))
+        .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.dsHairline, lineWidth: 1))
+    }
+}
+
+// MARK: — Catalog picker sheet (entrada a crear rutina)
+
+struct CatalogPickerSheet: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(WorkoutManager.self) var manager
+    let onCreateRoutine: (DayVariant) -> Void
+
+    @State private var selectedIDs: Set<UUID> = []
+    @State private var searchText = ""
+    @State private var showNaming = false
+    @State private var routineName = ""
+    @State private var showAddExercise = false
+
+    var filteredCatalog: [ExerciseTemplate] {
+        if searchText.isEmpty { return manager.exerciseCatalog }
+        return manager.exerciseCatalog.filter {
+            $0.name.localizedCaseInsensitiveContains(searchText) ||
+            $0.muscleTag.localizedCaseInsensitiveContains(searchText)
+        }
+    }
+
+    var selectedExercises: [ExerciseTemplate] {
+        manager.exerciseCatalog.filter { selectedIDs.contains($0.id) }
+    }
+
+    /// Preview de grupos que se crearán agrupados por muscleTag
+    var previewGroups: [(tag: String, count: Int)] {
+        let byTag = Dictionary(grouping: selectedExercises, by: \.muscleTag)
+        return byTag.keys.sorted().map { tag in
+            (tag: tag.isEmpty ? "GENERAL" : tag.uppercased(), count: byTag[tag]?.count ?? 0)
+        }
+    }
+
+    var grouped: [String: [ExerciseTemplate]] {
+        Dictionary(grouping: filteredCatalog, by: \.muscleTag)
+    }
+    var tags: [String] { grouped.keys.sorted() }
+
+    var body: some View {
+        ZStack {
+            Color.dsCanvas.ignoresSafeArea()
+            VStack(spacing: 0) {
+                sheetHandle()
+
+                // Header
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("NUEVA RUTINA")
+                            .font(.geist(9, weight: .semiBold))
+                            .foregroundStyle(Color.dsFg3)
+                            .tracking(1.8)
+                        Text("Elegí ejercicios")
+                            .font(.geist(22, weight: .bold))
+                            .foregroundStyle(Color.dsFg1)
+                    }
+                    Spacer()
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(Color.dsFg3)
+                            .frame(width: 28, height: 28)
+                            .background(Color.dsSurface)
+                            .clipShape(RoundedRectangle(cornerRadius: 3))
+                            .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color.dsHairline, lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 14)
+
+                // Buscador
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass").font(.system(size: 12)).foregroundStyle(Color.dsFg4)
+                    TextField("Buscar por nombre o músculo", text: $searchText)
+                        .font(.geist(13, weight: .regular)).foregroundStyle(Color.dsFg1).tint(Color.dsNaranja)
+                    if !searchText.isEmpty {
+                        Button { searchText = "" } label: {
+                            Image(systemName: "xmark.circle.fill").font(.system(size: 13)).foregroundStyle(Color.dsFg4)
+                        }
+                    }
+                }
+                .padding(.horizontal, 12).padding(.vertical, 10)
+                .background(Color.dsCard)
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.dsHairline, lineWidth: 1))
+                .padding(.horizontal, 20).padding(.bottom, 8)
+
+                // Botón nuevo ejercicio
+                Button { showAddExercise = true } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(Color.dsNaranja)
+                        Text("NUEVO EJERCICIO")
+                            .font(.geist(11, weight: .semiBold))
+                            .foregroundStyle(Color.dsNaranja)
+                            .tracking(0.5)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 12).padding(.vertical, 9)
+                    .background(Color.dsNaranja.opacity(0.06))
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.dsNaranja.opacity(0.2), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 20).padding(.bottom, 10)
+
+                // Chips de grupos seleccionados
+                if !previewGroups.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            ForEach(previewGroups, id: \.tag) { g in
+                                HStack(spacing: 4) {
+                                    Text(g.tag)
+                                        .font(.geist(9, weight: .semiBold))
+                                        .foregroundStyle(Color.dsNaranja)
+                                        .tracking(0.8)
+                                    Text("· \(g.count)")
+                                        .font(.geist(9, weight: .regular))
+                                        .foregroundStyle(Color.dsNaranja.opacity(0.7))
+                                }
+                                .padding(.horizontal, 8).padding(.vertical, 5)
+                                .background(Color.dsNaranja.opacity(0.08))
+                                .clipShape(RoundedRectangle(cornerRadius: 3))
+                                .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color.dsNaranja.opacity(0.2), lineWidth: 1))
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                    }
+                    .padding(.bottom, 10)
+                }
+
+                // Lista agrupada
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(tags, id: \.self) { tag in
+                            SectionRule(label: tag.isEmpty ? "SIN GRUPO" : tag.uppercased())
+                                .padding(.horizontal, 20)
+                                .padding(.top, 16).padding(.bottom, 4)
+
+                            VStack(spacing: 0) {
+                                ForEach(Array((grouped[tag] ?? []).enumerated()), id: \.element.id) { i, template in
+                                    if i > 0 { Rectangle().fill(Color.dsHairline).frame(height: 1) }
+                                    let selected = selectedIDs.contains(template.id)
+                                    Button {
+                                        if selected { selectedIDs.remove(template.id) }
+                                        else { selectedIDs.insert(template.id) }
+                                    } label: {
+                                        HStack(spacing: 12) {
+                                            ZStack {
+                                                RoundedRectangle(cornerRadius: 3)
+                                                    .fill(selected ? Color.dsNaranja : Color.dsSurface)
+                                                    .frame(width: 20, height: 20)
+                                                    .overlay(RoundedRectangle(cornerRadius: 3)
+                                                        .strokeBorder(selected ? Color.clear : Color.dsHairline, lineWidth: 1))
+                                                if selected {
+                                                    Image(systemName: "checkmark")
+                                                        .font(.system(size: 10, weight: .bold))
+                                                        .foregroundStyle(Color.dsOnPrimary)
+                                                }
+                                            }
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                Text(template.name.uppercased())
+                                                    .font(.geist(13, weight: .semiBold))
+                                                    .foregroundStyle(Color.dsFg1)
+                                                    .tracking(0.3)
+                                                HStack(spacing: 6) {
+                                                    Text("\(template.defaultSets) SERIES · \(template.defaultReps)")
+                                                        .font(.geist(9, weight: .regular))
+                                                        .foregroundStyle(Color.dsFg4)
+                                                        .tracking(0.5)
+                                                    if !template.description.isEmpty {
+                                                        Text("· con descripción")
+                                                            .font(.geist(9, weight: .regular))
+                                                            .foregroundStyle(Color.dsFg4.opacity(0.6))
+                                                    }
+                                                }
+                                            }
+                                            Spacer()
+                                        }
+                                        .padding(.horizontal, 20).padding(.vertical, 13)
+                                        .contentShape(Rectangle())
+                                        .background(selected ? Color.dsNaranja.opacity(0.04) : Color.clear)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+
+                        Spacer().frame(height: 20)
+                    }
+                }
+            }
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            VStack(spacing: 8) {
+                if !previewGroups.isEmpty {
+                    HStack(spacing: 4) {
+                        ForEach(previewGroups, id: \.tag) { g in
+                            Text(g.tag)
+                                .font(.geist(9, weight: .semiBold))
+                                .foregroundStyle(Color.dsFg3)
+                                .tracking(0.8)
+                            if g.tag != previewGroups.last?.tag {
+                                Text("·").font(.geist(9, weight: .regular)).foregroundStyle(Color.dsFg4)
+                            }
+                        }
+                    }
+                }
+                DSPrimaryButton(
+                    label: selectedIDs.isEmpty
+                        ? "Seleccioná ejercicios"
+                        : "Crear rutina (\(selectedIDs.count) ej)"
+                ) {
+                    showNaming = true
+                }
+                .disabled(selectedIDs.isEmpty)
+                .opacity(selectedIDs.isEmpty ? 0.35 : 1)
+            }
+            .padding(.horizontal, 20).padding(.top, 16).padding(.bottom, 32)
+            .background(Color.dsCanvas)
+        }
+        .sheet(isPresented: $showAddExercise) {
+            AddExerciseSheet { name, sets, reps in
+                let template = ExerciseTemplate(name: name, defaultSets: sets, defaultReps: reps)
+                manager.exerciseCatalog.append(template)
+                manager.saveCatalog()
+                selectedIDs.insert(template.id)
+            }
+        }
+        .presentationDetents([.large])
+        .presentationBackground(Color.dsCanvas)
+        .dsAlert(isPresented: $showNaming) {
+            DSAlert(
+                title: "Nombre del día",
+                buttons: [
+                    DSAlertButton(label: "Crear") {
+                        guard !routineName.isEmpty else { return }
+                        buildAndCreate()
+                        showNaming = false
+                    },
+                    DSAlertButton(label: "Cancelar", isCancel: true) {
+                        routineName = ""
+                        showNaming = false
+                    }
+                ],
+                inputField: ("Ej: Empuje, Piernas, Full body…", $routineName)
+            )
+        }
+    }
+
+    private func buildAndCreate() {
+        let selected = manager.exerciseCatalog.filter { selectedIDs.contains($0.id) }
+        let byTag = Dictionary(grouping: selected, by: \.muscleTag)
+        var groups: [MuscleGroup] = []
+        for tag in byTag.keys.sorted() {
+            let exs = (byTag[tag] ?? []).map { $0.toExercise() }
+            let groupName = tag.isEmpty ? "GENERAL" : tag.uppercased()
+            groups.append(MuscleGroup(name: groupName, exercises: exs))
+        }
+        let routine = DayVariant(
+            dayNumber: manager.routines.count + 1,
+            variant: "",
+            muscleGroups: groups
+        )
+        onCreateRoutine(routine)
+    }
+}
+
+// MARK: — Pick exercises from catalog sheet (agrupación automática)
+
+private struct PickExercisesFromCatalogSheet: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(WorkoutManager.self) var manager
+    let onAdd: ([ExerciseTemplate]) -> Void
+
+    @State private var selectedIDs: Set<UUID> = []
+    @State private var searchText = ""
+    @State private var showAddExercise = false
+
+    var filteredCatalog: [ExerciseTemplate] {
+        if searchText.isEmpty { return manager.exerciseCatalog }
+        return manager.exerciseCatalog.filter {
+            $0.name.localizedCaseInsensitiveContains(searchText) ||
+            $0.muscleTag.localizedCaseInsensitiveContains(searchText)
+        }
+    }
+
+    /// Preview de cómo quedarían agrupados los ejercicios seleccionados
+    var previewGroups: [(tag: String, count: Int)] {
+        let selected = manager.exerciseCatalog.filter { selectedIDs.contains($0.id) }
+        let byTag = Dictionary(grouping: selected, by: \.muscleTag)
+        return byTag.keys.sorted().map { tag in
+            (tag: tag.isEmpty ? "GENERAL" : tag.uppercased(), count: byTag[tag]?.count ?? 0)
+        }
+    }
+
+    var body: some View {
+        ZStack {
+            Color.dsCanvas.ignoresSafeArea()
+            VStack(spacing: 0) {
+                sheetHandle()
+                sheetHeader(title: "ELEGIR EJERCICIOS", onDismiss: { dismiss() })
+
+                // Buscador
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass").font(.system(size: 12)).foregroundStyle(Color.dsFg4)
+                    TextField("Buscar por nombre o músculo", text: $searchText)
+                        .font(.geist(13, weight: .regular)).foregroundStyle(Color.dsFg1).tint(Color.dsNaranja)
+                    if !searchText.isEmpty {
+                        Button { searchText = "" } label: {
+                            Image(systemName: "xmark.circle.fill").font(.system(size: 13)).foregroundStyle(Color.dsFg4)
+                        }
+                    }
+                }
+                .padding(.horizontal, 12).padding(.vertical, 10)
+                .background(Color.dsCard)
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.dsHairline, lineWidth: 1))
+                .padding(.horizontal, 20).padding(.bottom, 8)
+
+                // Botón nuevo ejercicio
+                Button { showAddExercise = true } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(Color.dsNaranja)
+                        Text("NUEVO EJERCICIO")
+                            .font(.geist(11, weight: .semiBold))
+                            .foregroundStyle(Color.dsNaranja)
+                            .tracking(0.5)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 12).padding(.vertical, 9)
+                    .background(Color.dsNaranja.opacity(0.06))
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.dsNaranja.opacity(0.2), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 20).padding(.bottom, 10)
+
+                // Preview de grupos que se crearán
+                if !previewGroups.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            ForEach(previewGroups, id: \.tag) { g in
+                                HStack(spacing: 4) {
+                                    Text(g.tag)
+                                        .font(.geist(9, weight: .semiBold))
+                                        .foregroundStyle(Color.dsNaranja)
+                                        .tracking(0.8)
+                                    Text("· \(g.count)")
+                                        .font(.geist(9, weight: .regular))
+                                        .foregroundStyle(Color.dsNaranja.opacity(0.7))
+                                }
+                                .padding(.horizontal, 8).padding(.vertical, 5)
+                                .background(Color.dsNaranja.opacity(0.08))
+                                .clipShape(RoundedRectangle(cornerRadius: 3))
+                                .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color.dsNaranja.opacity(0.2), lineWidth: 1))
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                    }
+                    .padding(.bottom, 10)
+                }
+
+                // Lista de ejercicios agrupados
+                let grouped = Dictionary(grouping: filteredCatalog, by: \.muscleTag)
+                let tags = grouped.keys.sorted()
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(tags, id: \.self) { tag in
+                            SectionRule(label: tag.isEmpty ? "SIN GRUPO" : tag.uppercased())
+                                .padding(.horizontal, 20)
+                                .padding(.top, 16).padding(.bottom, 4)
+
+                            VStack(spacing: 0) {
+                                ForEach(Array((grouped[tag] ?? []).enumerated()), id: \.element.id) { i, template in
+                                    if i > 0 { Rectangle().fill(Color.dsHairline).frame(height: 1) }
+                                    let selected = selectedIDs.contains(template.id)
+                                    Button {
+                                        if selected { selectedIDs.remove(template.id) }
+                                        else { selectedIDs.insert(template.id) }
+                                    } label: {
+                                        HStack(spacing: 12) {
+                                            ZStack {
+                                                RoundedRectangle(cornerRadius: 3)
+                                                    .fill(selected ? Color.dsNaranja : Color.dsSurface)
+                                                    .frame(width: 20, height: 20)
+                                                    .overlay(RoundedRectangle(cornerRadius: 3)
+                                                        .strokeBorder(selected ? Color.clear : Color.dsHairline, lineWidth: 1))
+                                                if selected {
+                                                    Image(systemName: "checkmark")
+                                                        .font(.system(size: 10, weight: .bold))
+                                                        .foregroundStyle(Color.dsOnPrimary)
+                                                }
+                                            }
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                Text(template.name.uppercased())
+                                                    .font(.geist(13, weight: .semiBold))
+                                                    .foregroundStyle(Color.dsFg1)
+                                                    .tracking(0.3)
+                                                Text("\(template.defaultSets) SERIES · \(template.defaultReps)")
+                                                    .font(.geist(9, weight: .regular))
+                                                    .foregroundStyle(Color.dsFg4)
+                                                    .tracking(0.5)
+                                            }
+                                            Spacer()
+                                        }
+                                        .padding(.horizontal, 20).padding(.vertical, 13)
+                                        .contentShape(Rectangle())
+                                        .background(selected ? Color.dsNaranja.opacity(0.04) : Color.clear)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                        Spacer().frame(height: 20)
+                    }
+                }
+            }
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            DSPrimaryButton(
+                label: selectedIDs.isEmpty
+                    ? "Seleccioná ejercicios"
+                    : "Agregar \(selectedIDs.count) ejercicio\(selectedIDs.count == 1 ? "" : "s")"
+            ) {
+                let selected = manager.exerciseCatalog.filter { selectedIDs.contains($0.id) }
+                onAdd(selected)
+                dismiss()
+            }
+            .disabled(selectedIDs.isEmpty)
+            .opacity(selectedIDs.isEmpty ? 0.35 : 1)
+            .padding(.horizontal, 20).padding(.top, 16).padding(.bottom, 32)
+            .background(Color.dsCanvas)
+        }
+        .sheet(isPresented: $showAddExercise) {
+            AddExerciseSheet { name, sets, reps in
+                let template = ExerciseTemplate(name: name, defaultSets: sets, defaultReps: reps)
+                manager.exerciseCatalog.append(template)
+                manager.saveCatalog()
+                selectedIDs.insert(template.id)
+            }
+        }
+        .presentationDetents([.large])
+        .presentationBackground(Color.dsCanvas)
+    }
+}
+
+// MARK: — Shared sheet helpers
+
+func sheetHandle() -> some View {
+    RoundedRectangle(cornerRadius: 2)
+        .fill(Color.dsFg4)
+        .frame(width: 32, height: 3)
+        .padding(.top, 12)
+}
+
+func sheetHeader(title: String, onDismiss: (() -> Void)? = nil) -> some View {
+    HStack {
+        Text(title)
+            .font(.geist(16, weight: .bold))
+            .foregroundStyle(Color.dsFg1)
+            .tracking(0.5)
+        Spacer()
+        if let onDismiss {
+            Button(action: onDismiss) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Color.dsFg3)
+                    .frame(width: 28, height: 28)
+                    .background(Color.dsSurface)
+                    .clipShape(RoundedRectangle(cornerRadius: 3))
+                    .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color.dsHairline, lineWidth: 1))
+            }
+        }
+    }
+    .padding(.horizontal, 20)
+    .padding(.top, 20)
+    .padding(.bottom, 24)
+}
