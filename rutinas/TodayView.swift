@@ -105,20 +105,33 @@ struct TodayView: View {
                                     .font(.geist(13, weight: .regular))
                                     .foregroundStyle(Color.dsFg2)
                                     .lineLimit(1)
-                                // Status pill
-                                StatusPill(isActive: manager.activeSession != nil)
-                                    .padding(.top, 2)
+                                // Status pill + cancelar inline
+                                HStack(spacing: 8) {
+                                    StatusPill(isActive: manager.activeSession != nil)
+                                    if manager.activeSession != nil {
+                                        Button {
+                                            showCancel = true
+                                        } label: {
+                                            Text("CANCELAR")
+                                                .font(.geist(9, weight: .semiBold))
+                                                .tracking(1.2)
+                                                .foregroundStyle(Color.dsRojo400)
+                                                .padding(.horizontal, 8)
+                                                .padding(.vertical, 4)
+                                                .background(Color.dsRojo.opacity(0.08))
+                                                .clipShape(RoundedRectangle(cornerRadius: 2))
+                                                .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(Color.dsRojo400.opacity(0.25), lineWidth: 1))
+                                        }
+                                        .buttonStyle(.plain)
+                                        .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                                    }
+                                }
+                                .animation(.easeOut(duration: 0.15), value: manager.activeSession != nil)
+                                .padding(.top, 2)
                             }
 
                             Spacer()
-                            VStack(alignment: .trailing, spacing: 8) {
-                                if manager.activeSession != nil {
-                                    Button("Cancelar") { showCancel = true }
-                                        .font(.geist(11, weight: .medium))
-                                        .foregroundStyle(Color.dsRojo400)
-                                }
-                                MiniRing(done: doneSets, total: totalSets, isActive: manager.activeSession != nil)
-                            }
+                            MiniRing(done: doneSets, total: totalSets, isActive: manager.activeSession != nil)
                         }
                         .padding(.horizontal, 20)
                         .padding(.top, 8)
@@ -128,7 +141,7 @@ struct TodayView: View {
                         if manager.activeSession != nil {
                             AnalogStopwatchBlock()
                                 .padding(.horizontal, 20)
-                                .padding(.bottom, 20)
+                                .padding(.bottom, 12)
                         }
 
                         // ── Grupos de ejercicios ──────────────────
@@ -413,17 +426,17 @@ struct AnalogStopwatchBlock: View {
     private var secondDegrees: Double { Double(displaySeconds % 60) / 60.0 * 360 }
 
     var body: some View {
-        VStack(spacing: 12) {
-            HStack(spacing: 16) {
+        VStack(spacing: 8) {
+            HStack(spacing: 14) {
                 analogDial
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(stopwatch.mode == .countdown ? "TEMPORIZADOR" : "CRONÓMETRO")
                         .font(.geist(9, weight: .semiBold))
                         .foregroundStyle(stopwatch.mode == .countdown ? Color.dsNaranja : Color.dsFg3)
                         .tracking(1.8)
                         .animation(.easeInOut(duration: 0.2), value: stopwatch.mode == .countdown)
                     Text(stopwatch.displayTime)
-                        .font(.system(size: 22, weight: .bold).monospacedDigit())
+                        .font(.system(size: 20, weight: .bold).monospacedDigit())
                         .foregroundStyle(stopwatch.isFinished ? Color.dsNaranja : Color.dsFg1)
                     HStack(spacing: 8) {
                         Button { stopwatch.toggle() } label: {
@@ -479,8 +492,8 @@ struct AnalogStopwatchBlock: View {
                 }
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
         .background(Color.dsCard)
         .clipShape(RoundedRectangle(cornerRadius: 4))
         .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.dsHairline, lineWidth: 1))
@@ -726,7 +739,7 @@ struct ExerciseEditorialRow: View {
                 }
 
                 // Subtítulo: sets×reps + peso
-                HStack(spacing: 10) {
+                HStack(spacing: 8) {
                     HStack(spacing: 0) {
                         Text("\(exercise.sets)")
                             .foregroundStyle(Color.dsFg3)
@@ -765,7 +778,7 @@ struct ExerciseEditorialRow: View {
                         }
                     }
                 }
-                .padding(.top, 7)
+                .padding(.top, 4)
 
                 // Botones de series (solo en sesión activa)
                 if isSessionActive {
@@ -816,11 +829,11 @@ struct ExerciseEditorialRow: View {
                             .animation(.easeOut(duration: 0.12), value: done)
                         }
                     }
-                    .padding(.top, 12)
+                    .padding(.top, 8)
                 }
             }
         }
-        .padding(.vertical, 20)
+        .padding(.vertical, 14)
         .opacity(isCompleted ? 0.4 : 1.0)
         .animation(.easeOut(duration: 0.18), value: isCompleted)
         .overlay(alignment: .leading) {
@@ -911,18 +924,28 @@ struct ExerciseEditorialRow: View {
 private struct SetTypePicker: View {
     @Binding var selection: SetType
 
+    // Solo dos modos visibles: Reps (unifica weightReps + reps) y Tiempo
+    private let modes: [(label: String, type: SetType)] = [
+        ("REPS", .weightReps),
+        ("TIEMPO", .time)
+    ]
+
+    private var isRepsMode: Bool { selection != .time }
+
     var body: some View {
         HStack(spacing: 0) {
-            ForEach([SetType.weightReps, .reps, .time], id: \.self) { mode in
+            ForEach(modes, id: \.type) { item in
+                let selected = item.type == .time ? selection == .time : isRepsMode
                 Button {
-                    withAnimation(.easeInOut(duration: 0.15)) { selection = mode }
+                    withAnimation(.easeInOut(duration: 0.2)) { selection = item.type }
                 } label: {
-                    Text(mode.label)
-                        .font(.geist(12, weight: selection == mode ? .semiBold : .regular))
-                        .foregroundStyle(selection == mode ? Color.dsOnPrimary : Color.dsFg2)
+                    Text(item.label)
+                        .font(.geist(11, weight: selected ? .semiBold : .medium))
+                        .tracking(0.8)
+                        .foregroundStyle(selected ? Color.dsOnPrimary : Color.dsFg3)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .background(selection == mode ? Color.dsNaranja : Color.clear)
+                        .padding(.vertical, 9)
+                        .background(selected ? Color.dsNaranja : Color.clear)
                         .clipShape(RoundedRectangle(cornerRadius: 2))
                 }
                 .buttonStyle(.plain)
@@ -930,8 +953,8 @@ private struct SetTypePicker: View {
         }
         .padding(3)
         .background(Color.dsSurface)
-        .clipShape(RoundedRectangle(cornerRadius: 4))
-        .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.dsHairline, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 3))
+        .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color.dsHairline, lineWidth: 1))
     }
 }
 
@@ -987,6 +1010,13 @@ struct SetLogSheet: View {
     private var numericWeight: Double {
         Double(weightStr.replacingOccurrences(of: ",", with: ".")) ?? 0
     }
+
+    // Altura fija por modo — se aplica solo al inicializar, no cambia durante la sesión
+    private var initialDetent: PresentationDetent {
+        let hasLast = lastWeight != nil
+        let h: CGFloat = 16 + 18 + 60 + (hasLast ? 80 : 0) + 44 + 88 + 186 + 52 + 70 + 28
+        return .height(min(h, 720))
+    }
     private var numericTime: Double { Double(timeMinutes * 60 + timeSeconds) }
     private var weightDelta: Double? {
         guard let lw = lastWeight, abs(numericWeight - lw) > 0.01 else { return nil }
@@ -996,61 +1026,74 @@ struct SetLogSheet: View {
     var body: some View {
         ZStack {
             Color.dsElevated.ignoresSafeArea()
-            VStack(spacing: 0) {
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(Color.dsFg4)
-                    .frame(width: 32, height: 3)
-                    .padding(.top, 12)
-                    .padding(.bottom, 18)
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color.dsFg4)
+                        .frame(width: 32, height: 3)
+                        .padding(.top, 12)
+                        .padding(.bottom, 18)
 
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text("SERIE \(setIndex + 1)")
-                            .font(.geist(9, weight: .semiBold))
-                            .foregroundStyle(Color.dsFg3)
-                            .tracking(2.0)
-                        Text(exercise.name.uppercased())
-                            .font(.geist(16, weight: .bold))
-                            .foregroundStyle(Color.dsFg1)
-                            .tracking(0.3)
+                    HStack(alignment: .top) {
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text("SERIE \(setIndex + 1)")
+                                .font(.geist(9, weight: .semiBold))
+                                .foregroundStyle(Color.dsFg3)
+                                .tracking(2.0)
+                            Text(exercise.name.uppercased())
+                                .font(.geist(16, weight: .bold))
+                                .foregroundStyle(Color.dsFg1)
+                                .tracking(0.3)
+                        }
+                        Spacer()
+                        Button { dismiss() } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(Color.dsFg3)
+                                .frame(width: 28, height: 28)
+                                .background(Color.dsSurface)
+                                .clipShape(RoundedRectangle(cornerRadius: 3))
+                                .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color.dsHairline, lineWidth: 1))
+                        }
                     }
-                    Spacer()
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(Color.dsFg3)
-                            .frame(width: 28, height: 28)
-                            .background(Color.dsSurface)
-                            .clipShape(RoundedRectangle(cornerRadius: 3))
-                            .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color.dsHairline, lineWidth: 1))
-                    }
-                }
-                .padding(.horizontal, 20)
+                    .padding(.horizontal, 20)
 
-                // — Referencia anterior (bloque prominente)
-                if let lw = lastWeight, mode == .weightReps {
-                    lastSessionBlock(lastKg: lw)
+                    // — Referencia anterior (bloque prominente)
+                    if let lw = lastWeight, mode != .time {
+                        lastSessionBlock(lastKg: lw)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 14)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+
+                    SetTypePicker(selection: $mode)
                         .padding(.horizontal, 20)
                         .padding(.top, 14)
+
+                    // Contenido por modo — transición simple de opacidad
+                    Group {
+                        if mode == .time {
+                            timeContent
+                        } else {
+                            weightRepsContent
+                        }
+                    }
+                    .id(mode == .time ? "time" : "reps")
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.18), value: mode)
                 }
-
-                SetTypePicker(selection: $mode)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 14)
-
-                switch mode {
-                case .weightReps: weightRepsContent
-                case .reps:       repsContent
-                case .time:       timeContent
-                }
-
+            }
+            .scrollDisabled(true)
+            .safeAreaInset(edge: .bottom) {
                 DSPrimaryButton(label: "Confirmar serie") { confirm() }
                     .padding(.horizontal, 20)
-                    .padding(.top, 14)
-                    .padding(.bottom, 28)
+                    .padding(.top, 12)
+                    .padding(.bottom, 24)
+                    .background(Color.dsElevated)
             }
         }
-        .presentationDetents([.large])
+        .presentationDetents([initialDetent, .large])
+        .presentationDragIndicator(.hidden)
         .presentationBackground(Color.dsElevated)
     }
 
@@ -1124,59 +1167,70 @@ struct SetLogSheet: View {
     // MARK: — weightReps
 
     @ViewBuilder private var weightRepsContent: some View {
-        HStack(spacing: 18) {
+        // Peso (opcional — queda en 0 si no se carga)
+        HStack(spacing: 14) {
             AdjustButton(label: "−2.5") { adjustWeight(-2.5) }
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(weightStr)
-                    .font(.system(size: 68, weight: .bold))
-                    .foregroundStyle(Color.dsFg1)
-                    .tracking(68 * -0.04)
-                    .monospacedDigit()
-                    .frame(minWidth: 160, alignment: .trailing)
-                Text("kg")
-                    .font(.system(size: 18, weight: .medium).monospacedDigit())
-                    .foregroundStyle(Color.dsFg3)
+                    .font(.custom("IBMPlexMono-Bold", size: 56))
+                    .foregroundStyle(numericWeight > 0 ? Color.dsFg1 : Color.dsFg4)
+                    .tracking(-1.5)
+                    .frame(minWidth: 120, alignment: .trailing)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("KG")
+                        .font(.geist(14, weight: .semiBold))
+                        .foregroundStyle(Color.dsFg3)
+                        .tracking(1.2)
+                    if numericWeight == 0 {
+                        Text("opcional")
+                            .font(.geist(9, weight: .regular))
+                            .foregroundStyle(Color.dsFg4)
+                            .tracking(0.5)
+                    }
+                }
+                .padding(.bottom, 4)
             }
             AdjustButton(label: "+2.5") { adjustWeight(2.5) }
         }
-        .padding(.vertical, 22)
+        .padding(.vertical, 16)
         .frame(maxWidth: .infinity)
         .overlay(alignment: .top) { Rectangle().fill(Color.dsHairline).frame(height: 1) }
         .overlay(alignment: .bottom) { Rectangle().fill(Color.dsHairline).frame(height: 1) }
-        .padding(.top, 20)
+        .padding(.top, 16)
 
         weightNumpad
             .padding(.horizontal, 20)
-            .padding(.top, 16)
+            .padding(.top, 12)
 
         repsStepperRow
             .padding(.horizontal, 20)
-            .padding(.top, 12)
+            .padding(.top, 10)
     }
 
     // MARK: — reps only
 
     @ViewBuilder private var repsContent: some View {
-        HStack(spacing: 18) {
+        HStack(spacing: 14) {
             AdjustButton(label: "−1") { if reps > 1 { reps -= 1 } }
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text("\(reps)")
-                    .font(.system(size: 68, weight: .bold))
+                    .font(.custom("IBMPlexMono-Bold", size: 56))
                     .foregroundStyle(Color.dsFg1)
-                    .tracking(68 * -0.04)
-                    .monospacedDigit()
-                    .frame(minWidth: 120, alignment: .trailing)
-                Text("reps")
-                    .font(.system(size: 18, weight: .medium))
+                    .tracking(-1.5)
+                    .frame(minWidth: 100, alignment: .trailing)
+                Text("REPS")
+                    .font(.geist(14, weight: .semiBold))
                     .foregroundStyle(Color.dsFg3)
+                    .tracking(1.2)
+                    .padding(.bottom, 4)
             }
             AdjustButton(label: "+1") { reps += 1 }
         }
-        .padding(.vertical, 22)
+        .padding(.vertical, 16)
         .frame(maxWidth: .infinity)
         .overlay(alignment: .top) { Rectangle().fill(Color.dsHairline).frame(height: 1) }
         .overlay(alignment: .bottom) { Rectangle().fill(Color.dsHairline).frame(height: 1) }
-        .padding(.top, 20)
+        .padding(.top, 16)
 
         HStack(spacing: 12) {
             DSEyebrow(text: "Peso (opcional)")
@@ -1224,23 +1278,27 @@ struct SetLogSheet: View {
         // Display mm:ss grande
         HStack(alignment: .firstTextBaseline, spacing: 4) {
             Text(String(format: "%d", timeMinutes))
-                .font(.system(size: 68, weight: .bold).monospacedDigit())
+                .font(.custom("IBMPlexMono-Bold", size: 56))
                 .foregroundStyle(Color.dsFg1)
-                .tracking(68 * -0.04)
-            Text("min")
-                .font(.system(size: 18, weight: .medium))
+                .tracking(-1.5)
+            Text("MIN")
+                .font(.geist(13, weight: .semiBold))
                 .foregroundStyle(Color.dsFg3)
-                .padding(.trailing, 12)
+                .tracking(1.0)
+                .padding(.trailing, 10)
+                .padding(.bottom, 4)
             Text(String(format: "%02d", timeSeconds))
-                .font(.system(size: 68, weight: .bold).monospacedDigit())
+                .font(.custom("IBMPlexMono-Bold", size: 56))
                 .foregroundStyle(timeSeconds > 0 ? Color.dsFg1 : Color.dsFg4)
-                .tracking(68 * -0.04)
-            Text("seg")
-                .font(.system(size: 18, weight: .medium))
+                .tracking(-1.5)
+            Text("SEG")
+                .font(.geist(13, weight: .semiBold))
                 .foregroundStyle(Color.dsFg3)
+                .tracking(1.0)
+                .padding(.bottom, 4)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 22)
+        .padding(.vertical, 16)
         .overlay(alignment: .top) { Rectangle().fill(Color.dsHairline).frame(height: 1) }
         .overlay(alignment: .bottom) { Rectangle().fill(Color.dsHairline).frame(height: 1) }
         .padding(.top, 16)
@@ -1394,62 +1452,62 @@ struct SetLogSheet: View {
 
     private var repsStepperRow: some View {
         HStack(spacing: 0) {
-            DSEyebrow(text: "Reps")
+            DSEyebrow(text: "REPS")
             Spacer()
-            HStack(spacing: 16) {
+            HStack(spacing: 14) {
                 Button { if reps > 1 { reps -= 1 } } label: {
                     Image(systemName: "minus")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(Color.dsFg2)
-                        .frame(width: 36, height: 36)
+                        .frame(width: 32, height: 32)
                         .background(Color.dsSurface)
-                        .clipShape(RoundedRectangle(cornerRadius: 3))
-                        .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color.dsHairline, lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: 2))
+                        .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(Color.dsHairline, lineWidth: 1))
                 }
                 .buttonStyle(.plain)
                 Text("\(reps)")
-                    .font(.system(size: 20, weight: .bold).monospacedDigit())
+                    .font(.custom("IBMPlexMono-Bold", size: 18))
                     .foregroundStyle(Color.dsFg1)
-                    .frame(minWidth: 32, alignment: .center)
+                    .frame(minWidth: 28, alignment: .center)
                 Button { reps += 1 } label: {
                     Image(systemName: "plus")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(Color.dsFg2)
-                        .frame(width: 36, height: 36)
+                        .frame(width: 32, height: 32)
                         .background(Color.dsSurface)
-                        .clipShape(RoundedRectangle(cornerRadius: 3))
-                        .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color.dsHairline, lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: 2))
+                        .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(Color.dsHairline, lineWidth: 1))
                 }
                 .buttonStyle(.plain)
             }
         }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 14)
         .background(Color.dsCard)
-        .clipShape(RoundedRectangle(cornerRadius: 4))
-        .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.dsHairline, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 3))
+        .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color.dsHairline, lineWidth: 1))
     }
 
     private var weightNumpad: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 3), spacing: 6) {
             ForEach(Array(numpadKeys.enumerated()), id: \.offset) { _, key in
                 Button { tapWeightKey(key) } label: {
                     Group {
                         if key == "del" {
                             Image(systemName: "delete.left")
-                                .font(.system(size: 20, weight: .medium))
+                                .font(.system(size: 16, weight: .medium))
                                 .foregroundStyle(Color.dsFg2)
                         } else {
                             Text(key)
-                                .font(.system(size: 22, weight: .medium).monospacedDigit())
+                                .font(.custom("IBMPlexMono-Medium", size: 18))
                                 .foregroundStyle(Color.dsFg1)
                         }
                     }
                     .frame(maxWidth: .infinity)
-                    .frame(height: 52)
+                    .frame(height: 42)
                     .background(Color.dsCard)
-                    .clipShape(RoundedRectangle(cornerRadius: 3))
-                    .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color.dsHairline, lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 2))
+                    .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(Color.dsHairline, lineWidth: 1))
                 }
                 .buttonStyle(.plain)
             }
@@ -1495,12 +1553,13 @@ private struct AdjustButton: View {
     var body: some View {
         Button(action: action) {
             Text(label)
-                .font(.geist(13, weight: .semiBold))
+                .font(.geist(12, weight: .semiBold))
+                .tracking(0.3)
                 .foregroundStyle(Color.dsFg2)
-                .frame(width: 44, height: 40)
-                .background(Color.dsCard)
-                .clipShape(RoundedRectangle(cornerRadius: 3))
-                .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color.dsHairline, lineWidth: 1))
+                .frame(width: 48, height: 36)
+                .background(Color.dsElevated)
+                .clipShape(RoundedRectangle(cornerRadius: 2))
+                .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(Color.dsHairline, lineWidth: 1))
         }
         .buttonStyle(.plain)
     }

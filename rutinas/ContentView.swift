@@ -17,24 +17,42 @@ struct ContentView: View {
                     .preferredColorScheme(.dark)
                     .tint(.dsNaranja)
             } else {
-                TabView {
-                    TodayView()
-                        .tabItem { Label("HOY", systemImage: "figure.strengthtraining.traditional") }
-                    RoutinesView()
-                        .tabItem { Label("RUTINAS", systemImage: "list.bullet.clipboard") }
-                    HistoryView()
-                        .tabItem { Label("HISTORIAL", systemImage: "calendar") }
-                }
-                .environment(manager)
-                .environment(stopwatch)
-                .environment(restTimer)
-                .preferredColorScheme(.dark)
-                .tint(.dsNaranja)
-                .onChange(of: scenePhase) { _, phase in
-                    if phase == .active { restTimer.syncWithCurrentTime(); stopwatch.syncWithCurrentTime() }
-                }
+                MainContainerView()
+                    .environment(manager)
+                    .environment(stopwatch)
+                    .environment(restTimer)
+                    .preferredColorScheme(.dark)
+                    .tint(.dsNaranja)
+                    .onChange(of: scenePhase) { _, phase in
+                        if phase == .active { restTimer.syncWithCurrentTime(); stopwatch.syncWithCurrentTime() }
+                    }
             }
         }
+    }
+}
+
+// MARK: — Main Container (navegación custom)
+
+struct MainContainerView: View {
+    @State private var selectedTab: AppTab = .hoy
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Contenido activo
+            Group {
+                switch selectedTab {
+                case .hoy:       TodayView()
+                case .rutinas:   RoutinesView()
+                case .historial: HistoryView()
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            // Barra de navegación propia
+            CustomTabBar(selectedTab: $selectedTab)
+        }
+        .background(Color.dsCanvas)
+        .ignoresSafeArea(.keyboard)
     }
 }
 

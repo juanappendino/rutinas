@@ -5,8 +5,8 @@ enum SetType: String, Codable {
 
     var label: String {
         switch self {
-        case .weightReps: return "Peso+Reps"
-        case .reps:       return "Solo Reps"
+        case .weightReps: return "Reps"
+        case .reps:       return "Reps"   // alias — unificado con weightReps en UI
         case .time:       return "Tiempo"
         }
     }
