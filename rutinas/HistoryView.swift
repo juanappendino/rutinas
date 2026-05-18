@@ -93,50 +93,95 @@ struct HistoryView: View {
         }
     }
 
+    private var weekDayData: [(letter: String, hasSession: Bool, isToday: Bool)] {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        var comps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: today)
+        comps.weekday = 2 // Lunes
+        let monday = cal.date(from: comps) ?? today
+        let letters = ["L", "M", "M", "J", "V", "S", "D"]
+        let sessionDays = Set(manager.history.filter(\.isCompleted).map { cal.startOfDay(for: $0.date) })
+        return (0..<7).map { i in
+            let day = cal.date(byAdding: .day, value: i, to: monday) ?? today
+            return (letters[i], sessionDays.contains(day), day == today)
+        }
+    }
+
     private func streakCard(streak: Int, best: Int) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("RACHA ACTUAL")
-                .font(.geist(9, weight: .semiBold))
-                .foregroundStyle(Color.dsFg3)
-                .tracking(1.8)
+            HStack {
+                Text("RACHA ACTUAL")
+                    .font(.geist(9, weight: .semiBold))
+                    .foregroundStyle(streak > 0 ? Color.dsNaranja : Color.dsFg3)
+                    .tracking(1.8)
+                Spacer()
+                if best > 0 {
+                    Text("RÉCORD · \(best) DÍAS")
+                        .font(.geist(9, weight: .regular))
+                        .foregroundStyle(Color.dsFg4)
+                        .tracking(1.0)
+                }
+            }
 
             if streak > 0 {
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
                     Text("\(streak)")
-                        .font(.geist(52, weight: .bold))
-                        .foregroundStyle(Color.dsFg1)
+                        .font(.custom("IBMPlexMono-Bold", size: 52))
+                        .foregroundStyle(Color.dsNaranja)
+                        .tracking(-1.5)
                     VStack(alignment: .leading, spacing: 3) {
-                        HStack(spacing: 5) {
-                            Image(systemName: "flame.fill")
-                                .font(.system(size: 14))
-                                .foregroundStyle(Color.dsNaranja)
-                            Text("DÍAS SEGUIDOS")
-                                .font(.geist(11, weight: .semiBold))
-                                .foregroundStyle(Color.dsFg1)
-                                .tracking(0.8)
-                        }
-                        Text("PR · \(best) DÍAS")
+                        Text("DÍA\(streak == 1 ? "" : "S")")
+                            .font(.geist(11, weight: .semiBold))
+                            .foregroundStyle(Color.dsFg1)
+                            .tracking(0.8)
+                        Text("seguido\(streak == 1 ? "" : "s")")
                             .font(.geist(10, weight: .regular))
                             .foregroundStyle(Color.dsFg3)
-                            .tracking(0.6)
                     }
+                    .padding(.bottom, 6)
                 }
             } else {
                 Text("\(manager.currentMonthDays) entrenamientos este mes")
                     .font(.geist(15, weight: .semiBold))
                     .foregroundStyle(Color.dsFg1)
-                if best > 0 {
-                    Text("PR · \(best) días seguidos")
-                        .font(.geist(11, weight: .regular))
-                        .foregroundStyle(Color.dsFg3)
+            }
+
+            // Week strip — 7 días de la semana actual
+            HStack(spacing: 5) {
+                ForEach(Array(weekDayData.enumerated()), id: \.offset) { _, day in
+                    VStack(spacing: 5) {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(day.hasSession ? Color.dsNaranja : Color.clear)
+                            .frame(height: 20)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 2)
+                                    .strokeBorder(
+                                        day.hasSession ? Color.clear :
+                                        day.isToday ? Color.dsNaranja.opacity(0.5) :
+                                        Color.dsHairline,
+                                        lineWidth: 1
+                                    )
+                            )
+                        Text(day.letter)
+                            .font(.geist(9, weight: .medium))
+                            .foregroundStyle(
+                                day.hasSession ? Color.dsNaranja :
+                                day.isToday ? Color.dsFg2 :
+                                Color.dsFg4
+                            )
+                    }
+                    .frame(maxWidth: .infinity)
                 }
             }
+            .padding(.top, 4)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(Color.dsCard)
+        .background(streak > 0 ? Color.dsNaranja.opacity(0.06) : Color.dsCard)
         .clipShape(RoundedRectangle(cornerRadius: 4))
-        .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.dsHairline, lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(
+            streak > 0 ? Color.dsNaranja.opacity(0.25) : Color.dsHairline, lineWidth: 1
+        ))
     }
 
     private var statsGrid: some View {

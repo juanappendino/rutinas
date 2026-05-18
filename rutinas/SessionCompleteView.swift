@@ -6,6 +6,13 @@ struct SessionCompleteView: View {
 
     @State private var appeared = false
 
+    private var sessionDateString: String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "es_AR")
+        f.dateFormat = "EEE d MMM"
+        return f.string(from: summary.sessionDate).lowercased()
+    }
+
     var body: some View {
         ZStack {
             Color.dsCanvas.ignoresSafeArea()
@@ -14,7 +21,7 @@ struct SessionCompleteView: View {
                 Spacer()
 
                 // — Título
-                VStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 8) {
                     Text("SESIÓN COMPLETA")
                         .font(.geist(9, weight: .semiBold))
                         .foregroundStyle(Color.dsNaranja)
@@ -23,14 +30,29 @@ struct SessionCompleteView: View {
                         .offset(y: appeared ? 0 : 12)
                         .animation(.easeOut(duration: 0.3).delay(0.05), value: appeared)
 
-                    Text(summary.routineName.uppercased())
-                        .font(.geist(36, weight: .bold))
-                        .foregroundStyle(Color.dsFg1)
-                        .tracking(0.5)
-                        .opacity(appeared ? 1 : 0)
-                        .offset(y: appeared ? 0 : 16)
-                        .animation(.easeOut(duration: 0.35).delay(0.1), value: appeared)
+                    HStack(alignment: .firstTextBaseline, spacing: 12) {
+                        DayNumeral(dayNumber: summary.dayNumber, variant: summary.variant, size: 56)
+                        Text(sessionDateString)
+                            .font(.custom("IBMPlexMono-Regular", size: 13))
+                            .foregroundStyle(Color.dsFg3)
+                            .tracking(0.4)
+                            .padding(.bottom, 6)
+                    }
+                    .opacity(appeared ? 1 : 0)
+                    .offset(y: appeared ? 0 : 16)
+                    .animation(.easeOut(duration: 0.35).delay(0.1), value: appeared)
+
+                    if !summary.muscleGroupNames.isEmpty {
+                        Text(summary.muscleGroupNames.joined(separator: " · ").uppercased())
+                            .font(.geist(12, weight: .medium))
+                            .foregroundStyle(Color.dsFg2)
+                            .tracking(0.8)
+                            .opacity(appeared ? 1 : 0)
+                            .offset(y: appeared ? 0 : 14)
+                            .animation(.easeOut(duration: 0.3).delay(0.15), value: appeared)
+                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.bottom, 24)
 
                 // — Stats grid

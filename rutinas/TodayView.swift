@@ -39,6 +39,10 @@ struct TodayView: View {
         return f.string(from: Date()).uppercased()
     }
 
+    private var estimatedMinutes: Int {
+        max(30, Int((Double(totalSets) * 1.5 / 5).rounded(.up)) * 5)
+    }
+
     private var currentStreak: Int {
         manager.currentStreak(history: manager.history)
     }
@@ -55,60 +59,83 @@ struct TodayView: View {
                     VStack(alignment: .leading, spacing: 0) {
 
                         // ── Hero header ───────────────────────────
-                        HStack(alignment: .top, spacing: 14) {
-                            // Numeral tappeable para cambiar rutina (solo sin sesión activa)
-                            Button {
-                                guard manager.activeSession == nil else { return }
-                                showRoutinePicker = true
-                            } label: {
-                                ZStack(alignment: .bottomTrailing) {
-                                    DayNumeral(
-                                        dayNumber: manager.todayRoutine.dayNumber,
-                                        variant: manager.todayRoutine.variant,
-                                        size: 56
-                                    )
-                                    if manager.activeSession == nil {
-                                        Image(systemName: "chevron.up.chevron.down")
-                                            .font(.system(size: 9, weight: .semibold))
-                                            .foregroundStyle(Color.dsFg4)
-                                            .offset(x: 2, y: 2)
-                                    }
-                                }
+                        VStack(alignment: .leading, spacing: 0) {
+                            // Eyebrow editorial (solo pre-entrenamiento)
+                            if manager.activeSession == nil {
+                                Text("RUTINA DE HOY · \(weekday)")
+                                    .font(.geist(9, weight: .semiBold))
+                                    .foregroundStyle(Color.dsFg3)
+                                    .tracking(1.8)
+                                    .padding(.bottom, 14)
+                                    .transition(.opacity)
                             }
-                            .buttonStyle(.plain)
-                            .disabled(manager.activeSession != nil)
 
-                            VStack(alignment: .leading, spacing: 4) {
-                                // Fecha + cantidad ejercicios + racha
-                                HStack(spacing: 8) {
-                                    Text(weekday)
-                                        .font(.geist(11, weight: .medium))
-                                        .foregroundStyle(Color.dsFg3)
-                                        .tracking(1.8)
-                                    Circle().fill(Color.dsFg4).frame(width: 3, height: 3)
-                                    Text("\(allExercises.count) ej")
-                                        .font(.system(size: 11, weight: .medium).monospacedDigit())
-                                        .foregroundStyle(Color.dsFg3)
-                                    if currentStreak >= 2 {
-                                        Circle().fill(Color.dsFg4).frame(width: 3, height: 3)
-                                        HStack(spacing: 3) {
-                                            Image(systemName: "flame.fill")
-                                                .font(.system(size: 9, weight: .bold))
-                                            Text("\(currentStreak)")
-                                                .font(.system(size: 11, weight: .semibold).monospacedDigit())
+                            HStack(alignment: .top, spacing: 14) {
+                                // Numeral tappeable (solo sin sesión activa)
+                                Button {
+                                    guard manager.activeSession == nil else { return }
+                                    showRoutinePicker = true
+                                } label: {
+                                    ZStack(alignment: .bottomTrailing) {
+                                        DayNumeral(
+                                            dayNumber: manager.todayRoutine.dayNumber,
+                                            variant: manager.todayRoutine.variant,
+                                            size: manager.activeSession == nil ? 72 : 42
+                                        )
+                                        if manager.activeSession == nil {
+                                            Image(systemName: "chevron.up.chevron.down")
+                                                .font(.system(size: 9, weight: .semibold))
+                                                .foregroundStyle(Color.dsFg4)
+                                                .offset(x: 2, y: 2)
                                         }
-                                        .foregroundStyle(Color.dsNaranja)
                                     }
                                 }
-                                // Grupos musculares
-                                Text(manager.todayRoutine.muscleGroups.map(\.name).joined(separator: " · "))
-                                    .font(.geist(13, weight: .regular))
-                                    .foregroundStyle(Color.dsFg2)
-                                    .lineLimit(1)
-                                // Status pill + cancelar inline
-                                HStack(spacing: 8) {
-                                    StatusPill(isActive: manager.activeSession != nil)
-                                    if manager.activeSession != nil {
+                                .buttonStyle(.plain)
+                                .disabled(manager.activeSession != nil)
+                                .animation(.easeOut(duration: 0.2), value: manager.activeSession != nil)
+
+                                if manager.activeSession == nil {
+                                    // Pre-entrenamiento: grupos musculares + status
+                                    let groups = manager.todayRoutine.muscleGroups.map(\.name)
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        if groups.count <= 3 {
+                                            Text(groups.joined(separator: " · ").uppercased())
+                                                .font(.geist(12, weight: .medium))
+                                                .foregroundStyle(Color.dsFg2)
+                                                .tracking(0.6)
+                                        } else {
+                                            Text(groups.prefix(2).joined(separator: " · ").uppercased())
+                                                .font(.geist(12, weight: .medium))
+                                                .foregroundStyle(Color.dsFg2)
+                                                .tracking(0.6)
+                                            Text(groups.dropFirst(2).joined(separator: " · ").uppercased())
+                                                .font(.geist(12, weight: .medium))
+                                                .foregroundStyle(Color.dsFg2)
+                                                .tracking(0.6)
+                                        }
+                                        StatusPill(isActive: false)
+                                        if currentStreak >= 2 {
+                                            HStack(spacing: 4) {
+                                                Image(systemName: "flame.fill")
+                                                    .font(.system(size: 9, weight: .bold))
+                                                Text("\(currentStreak) días")
+                                                    .font(.system(size: 11, weight: .semibold).monospacedDigit())
+                                            }
+                                            .foregroundStyle(Color.dsNaranja)
+                                        }
+                                    }
+                                    .padding(.top, 10)
+                                } else {
+                                    // En sesión: label + tiempo transcurrido + cancelar
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("EN SESIÓN")
+                                            .font(.geist(9, weight: .semiBold))
+                                            .foregroundStyle(Color.dsNaranja)
+                                            .tracking(1.8)
+                                        Text(stopwatch.displayTime)
+                                            .font(.system(size: 16, weight: .semibold).monospacedDigit())
+                                            .foregroundStyle(Color.dsFg3)
+                                            .tracking(0.4)
                                         Button {
                                             showCancel = true
                                         } label: {
@@ -123,19 +150,69 @@ struct TodayView: View {
                                                 .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(Color.dsRojo400.opacity(0.25), lineWidth: 1))
                                         }
                                         .buttonStyle(.plain)
-                                        .transition(.opacity.combined(with: .scale(scale: 0.9)))
                                     }
+                                    .padding(.top, 4)
                                 }
-                                .animation(.easeOut(duration: 0.15), value: manager.activeSession != nil)
-                                .padding(.top, 2)
+
+                                Spacer()
+                                MiniRing(done: doneSets, total: totalSets, isActive: manager.activeSession != nil)
                             }
 
-                            Spacer()
-                            MiniRing(done: doneSets, total: totalSets, isActive: manager.activeSession != nil)
+                            // Barra de progreso lineal (solo en sesión)
+                            if manager.activeSession != nil {
+                                VStack(spacing: 6) {
+                                    HStack {
+                                        Text("PROGRESO")
+                                            .font(.geist(9, weight: .semiBold))
+                                            .foregroundStyle(Color.dsFg4)
+                                            .tracking(1.6)
+                                        Spacer()
+                                        HStack(spacing: 0) {
+                                            Text("\(doneSets)")
+                                                .foregroundStyle(Color.dsNaranja)
+                                            Text("/\(totalSets)")
+                                                .foregroundStyle(Color.dsFg4)
+                                        }
+                                        .font(.system(size: 12, weight: .semibold).monospacedDigit())
+                                    }
+                                    GeometryReader { geo in
+                                        ZStack(alignment: .leading) {
+                                            RoundedRectangle(cornerRadius: 2)
+                                                .fill(Color.dsHairline)
+                                                .frame(height: 3)
+                                            RoundedRectangle(cornerRadius: 2)
+                                                .fill(Color.dsNaranja)
+                                                .frame(width: totalSets > 0 ? geo.size.width * CGFloat(doneSets) / CGFloat(totalSets) : 0, height: 3)
+                                                .animation(.easeOut(duration: 0.3), value: doneSets)
+                                        }
+                                    }
+                                    .frame(height: 3)
+                                }
+                                .padding(.top, 14)
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                            }
                         }
                         .padding(.horizontal, 20)
                         .padding(.top, 8)
-                        .padding(.bottom, manager.activeSession != nil ? 12 : 20)
+                        .padding(.bottom, manager.activeSession != nil ? 14 : 20)
+                        .animation(.easeOut(duration: 0.2), value: manager.activeSession != nil)
+
+                        // ── Stats strip (solo pre-entrenamiento) ─────────
+                        if manager.activeSession == nil && !allExercises.isEmpty {
+                            HStack(spacing: 0) {
+                                TodayStatCell(label: "EJERCICIOS", value: "\(allExercises.count)", unit: nil)
+                                Rectangle().fill(Color.dsHairline).frame(width: 1, height: 32)
+                                TodayStatCell(label: "SERIES", value: "\(totalSets)", unit: nil)
+                                Rectangle().fill(Color.dsHairline).frame(width: 1, height: 32)
+                                TodayStatCell(label: "ESTIMADO", value: "~\(estimatedMinutes)", unit: "MIN")
+                            }
+                            .padding(.vertical, 14)
+                            .overlay(alignment: .top) { Rectangle().fill(Color.dsHairline).frame(height: 1) }
+                            .overlay(alignment: .bottom) { Rectangle().fill(Color.dsHairline).frame(height: 1) }
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 8)
+                            .transition(.opacity)
+                        }
 
                         // ── Reloj analógico (sesión activa) ───────
                         if manager.activeSession != nil {
@@ -1594,6 +1671,37 @@ private struct AdjustButton: View {
                 .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(Color.dsHairline, lineWidth: 1))
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: — Stat cell (stats strip pre-entrenamiento)
+
+private struct TodayStatCell: View {
+    let label: String
+    let value: String
+    let unit: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(label)
+                .font(.geist(9, weight: .semiBold))
+                .foregroundStyle(Color.dsFg4)
+                .tracking(1.6)
+            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                Text(value)
+                    .font(.system(size: 22, weight: .bold).monospacedDigit())
+                    .foregroundStyle(Color.dsFg1)
+                    .tracking(-0.4)
+                if let unit {
+                    Text(unit)
+                        .font(.geist(10, weight: .medium))
+                        .foregroundStyle(Color.dsFg4)
+                        .tracking(0.8)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 16)
     }
 }
 

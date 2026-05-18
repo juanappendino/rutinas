@@ -2,6 +2,10 @@ import Foundation
 
 struct SessionSummary: Identifiable {
     let id = UUID()
+    let dayNumber: Int
+    let variant: String
+    let sessionDate: Date
+    let muscleGroupNames: [String]
     let durationMinutes: Int
     let totalSets: Int
     let completedExercises: Int
@@ -306,6 +310,10 @@ class WorkoutManager {
         }
 
         return SessionSummary(
+            dayNumber: session.dayNumber,
+            variant: session.variant,
+            sessionDate: session.date,
+            muscleGroupNames: variant?.muscleGroups.map(\.name) ?? [],
             durationMinutes: session.durationMinutes,
             totalSets: totalSets,
             completedExercises: session.completedExerciseIDs.count,
