@@ -1,0 +1,29 @@
+rutinas/WorkoutManager.swift
+  s_fbae0f4831a135::t_4600062a196330 5-8
+  s_fbae0f4831a135::t_1f342308d839ae 313-316
+rutinas/SessionCompleteView.swift
+  s_fbae0f4831a135::t_554337ec70e118 24,33-53,55
+  s_fbae0f4831a135::t_8b7f9bb4771d42 9-15
+rutinas/TodayView.swift
+  s_fbae0f4831a135::t_89ba7f7d744062 42-45
+  s_fbae0f4831a135::t_a55a46b3a75f10 1677-1707
+  s_fbae0f4831a135::t_dd8f359c77a8f0 62-70,72-89,93-138,154,156-158,161-193,197-215
+rutinas/HistoryView.swift
+  s_fbae0f4831a135::t_7b8a3a579e5f42 96-109,112-124,129-131,133-137,141,147-173,176,180,182-184
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "4fe56f8f9aa6d3fd2439c6b3a174dcd3b462fbe1",
+  "prompts": {},
+  "sessions": {
+    "s_fbae0f4831a135": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "188f7806-3194-4c80-b3e7-a70f623b9b81",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "jappen <juanappendino@gmail.com>"
+    }
+  }
+}
