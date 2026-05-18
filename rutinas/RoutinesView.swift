@@ -21,18 +21,7 @@ struct RoutinesView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
                         // Header
-                        HStack(alignment: .bottom) {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("REGISTRO DE PROGRAMAS · \(activeRoutines.count) ACTIVAS")
-                                    .font(.geist(9, weight: .semiBold))
-                                    .foregroundStyle(Color.dsFg3)
-                                    .tracking(1.8)
-                                Text("RUTINAS")
-                                    .font(.geist(28, weight: .bold))
-                                    .foregroundStyle(Color.dsFg1)
-                                    .tracking(0.5)
-                            }
-                            Spacer()
+                        DSPageHeader(eyebrow: "PROGRAMAS · \(activeRoutines.count) ACTIVAS", title: "RUTINAS") {
                             HStack(spacing: 12) {
                                 if manager.routines.filter({ !$0.isArchived }).count > 1 {
                                     Button { showReorder = true } label: {
@@ -58,9 +47,6 @@ struct RoutinesView: View {
                                 .buttonStyle(.plain)
                             }
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 16)
-                        .padding(.bottom, 24)
 
                         // Rutinas activas
                         VStack(spacing: 0) {

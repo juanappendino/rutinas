@@ -10,18 +10,7 @@ struct HistoryView: View {
                 Color.dsCanvas.ignoresSafeArea()
                 VStack(spacing: 0) {
                     // Header
-                    HStack(alignment: .bottom) {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("REGISTRO")
-                                .font(.geist(9, weight: .semiBold))
-                                .foregroundStyle(Color.dsFg3)
-                                .tracking(2.0)
-                            Text("HISTORIAL")
-                                .font(.geist(28, weight: .bold))
-                                .foregroundStyle(Color.dsFg1)
-                                .tracking(0.5)
-                        }
-                        Spacer()
+                    DSPageHeader(eyebrow: "REGISTRO", title: "HISTORIAL") {
                         HStack(spacing: 12) {
                             MiniBars(history: manager.history)
                             ShareLink(item: csvExport, preview: SharePreview("historial.csv")) {
@@ -36,12 +25,9 @@ struct HistoryView: View {
                             .disabled(manager.history.isEmpty)
                         }
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 16)
-                    .padding(.bottom, 20)
 
                     // Tab selector
-                    tabSelector
+                    DSSegmentedControl(labels: ["PROGRESO", "EJERCICIOS", "SESIONES"], selection: $tab)
                         .padding(.horizontal, 20)
                         .padding(.bottom, 16)
 
@@ -87,33 +73,6 @@ struct HistoryView: View {
             }
         }
         return lines.joined(separator: "\n")
-    }
-
-    // MARK: — Tab selector
-
-    private var tabSelector: some View {
-        HStack(spacing: 0) {
-            let labels = ["PROGRESO", "EJERCICIOS", "SESIONES"]
-            ForEach(labels.indices, id: \.self) { i in
-                Button {
-                    withAnimation(.easeInOut(duration: 0.15)) { tab = i }
-                } label: {
-                    Text(labels[i])
-                        .font(.geist(11, weight: tab == i ? .semiBold : .regular))
-                        .tracking(0.8)
-                        .foregroundStyle(tab == i ? Color.dsOnPrimary : Color.dsFg3)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 9)
-                        .background(tab == i ? Color.dsNaranja : Color.clear)
-                        .clipShape(RoundedRectangle(cornerRadius: 2))
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(3)
-        .background(Color.dsSurface)
-        .clipShape(RoundedRectangle(cornerRadius: 4))
-        .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.dsHairline, lineWidth: 1))
     }
 
     // MARK: — Tab 0: Progreso
@@ -185,10 +144,10 @@ struct HistoryView: View {
             columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)],
             spacing: 8
         ) {
-            HistStatCard(label: "SESIONES",    value: "\(manager.totalSessions)")
-            HistStatCard(label: "EJERCICIOS",  value: "\(manager.totalExercisesCompleted)")
-            HistStatCard(label: "ESTA SEMANA", value: "\(manager.currentWeekSessions)")
-            HistStatCard(label: "ESTE MES",    value: "\(manager.currentMonthDays)")
+            DSStatBlock(label: "SESIONES",    value: "\(manager.totalSessions)",             unit: "")
+            DSStatBlock(label: "EJERCICIOS",  value: "\(manager.totalExercisesCompleted)",   unit: "")
+            DSStatBlock(label: "ESTA SEMANA", value: "\(manager.currentWeekSessions)",        unit: "")
+            DSStatBlock(label: "ESTE MES",    value: "\(manager.currentMonthDays)",           unit: "")
         }
     }
 
@@ -343,32 +302,6 @@ struct HistoryView: View {
         if !thisWeek.isEmpty { result.append(("ESTA SEMANA", thisWeek)) }
         if !earlier.isEmpty  { result.append(("ANTERIORES", earlier)) }
         return result
-    }
-}
-
-// MARK: — HistStatCard
-
-private struct HistStatCard: View {
-    let label: String
-    let value: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Spacer()
-            Text(value)
-                .font(.geist(32, weight: .bold))
-                .foregroundStyle(Color.dsFg1)
-            Text(label)
-                .font(.geist(9, weight: .semiBold))
-                .foregroundStyle(Color.dsFg3)
-                .tracking(1.4)
-                .padding(.top, 4)
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, minHeight: 88, alignment: .topLeading)
-        .background(Color.dsCard)
-        .clipShape(RoundedRectangle(cornerRadius: 4))
-        .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.dsHairline, lineWidth: 1))
     }
 }
 

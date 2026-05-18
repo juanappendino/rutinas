@@ -379,16 +379,13 @@ private struct MiniRing: View {
 
     var body: some View {
         ZStack {
-            Circle()
-                .stroke(Color.dsElevated, lineWidth: 4)
-            Circle()
-                .trim(from: 0, to: progress)
-                .stroke(
-                    isActive ? Color.dsNaranja : Color.dsFg3,
-                    style: StrokeStyle(lineWidth: 4, lineCap: .round)
-                )
-                .rotationEffect(.degrees(-90))
-                .animation(.easeInOut(duration: 0.22), value: progress)
+            DSProgressRing(
+                progress: progress,
+                color: isActive ? .dsNaranja : .dsFg3,
+                trackColor: .dsElevated,
+                lineWidth: 4,
+                size: 76
+            )
 
             VStack(spacing: 2) {
                 HStack(alignment: .firstTextBaseline, spacing: 0) {
@@ -415,7 +412,9 @@ private struct MiniRing: View {
 struct AnalogStopwatchBlock: View {
     @Environment(StopwatchTimer.self) var stopwatch
 
-    private let countdownChips = [30, 60, 120, 180, 300]
+    private let countdownChips: [(id: Int, label: String)] = [
+        (30, "30S"), (60, "1M"), (120, "2M"), (180, "3M"), (300, "5M")
+    ]
 
     private var displaySeconds: Int {
         stopwatch.mode == .countdown
@@ -470,25 +469,11 @@ struct AnalogStopwatchBlock: View {
             }
 
             HStack(spacing: 4) {
-                ForEach(countdownChips, id: \.self) { secs in
-                    let isActive = stopwatch.mode == .countdown && stopwatch.countdownTarget == secs
-                    Button {
-                        stopwatch.startCountdown(seconds: secs)
-                    } label: {
-                        Text(secs < 60 ? "\(secs)S" : "\(secs / 60)M")
-                            .font(.geist(11, weight: isActive ? .semiBold : .regular))
-                            .tracking(0.5)
-                            .foregroundStyle(isActive ? Color.dsOnPrimary : Color.dsFg3)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 6)
-                            .background(isActive ? Color.dsNaranja : Color.clear)
-                            .clipShape(RoundedRectangle(cornerRadius: 2))
-                            .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(
-                                isActive ? Color.clear : Color.dsHairline, lineWidth: 1
-                            ))
+                ForEach(countdownChips, id: \.id) { chip in
+                    let isActive = stopwatch.mode == .countdown && stopwatch.countdownTarget == chip.id
+                    DSChip(label: chip.label, isSelected: isActive) {
+                        stopwatch.startCountdown(seconds: chip.id)
                     }
-                    .buttonStyle(.plain)
-                    .animation(.easeInOut(duration: 0.12), value: isActive)
                 }
             }
         }
@@ -548,20 +533,14 @@ struct RestTimerBanner: View {
     @Environment(RestTimer.self) var restTimer
     @AppStorage("restDuration") private var restDuration: Int = 60
 
-    private let chips = [30, 45, 60, 90, 120]
+    private let chips: [(id: Int, label: String)] = [
+        (30, "30S"), (45, "45S"), (60, "1M"), (90, "1M30"), (120, "2M")
+    ]
 
     var body: some View {
         VStack(spacing: 10) {
             HStack(spacing: 14) {
-                ZStack {
-                    Circle().stroke(Color.dsHairline, lineWidth: 4)
-                    Circle()
-                        .trim(from: 0, to: restTimer.progress)
-                        .stroke(Color.dsNaranja, style: StrokeStyle(lineWidth: 4, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-                        .animation(.linear(duration: 1), value: restTimer.progress)
-                }
-                .frame(width: 44, height: 44)
+                DSProgressRing(progress: restTimer.progress, color: .dsNaranja, lineWidth: 4, size: 44)
 
                 VStack(alignment: .leading, spacing: 3) {
                     DSEyebrow(text: "Descansando")
@@ -588,26 +567,12 @@ struct RestTimerBanner: View {
 
             // Chips de tiempo
             HStack(spacing: 6) {
-                ForEach(chips, id: \.self) { secs in
-                    let isSelected = restDuration == secs
-                    Button {
-                        restDuration = secs
-                        restTimer.start(duration: secs)
-                    } label: {
-                        Text(secs < 60 ? "\(secs)S" : "\(secs / 60)M")
-                            .font(.geist(11, weight: isSelected ? .semiBold : .regular))
-                            .tracking(0.5)
-                            .foregroundStyle(isSelected ? Color.dsOnPrimary : Color.dsFg3)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 6)
-                            .background(isSelected ? Color.dsNaranja : Color.clear)
-                            .clipShape(RoundedRectangle(cornerRadius: 2))
-                            .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(
-                                isSelected ? Color.clear : Color.dsHairline, lineWidth: 1
-                            ))
+                ForEach(chips, id: \.id) { chip in
+                    let isSelected = restDuration == chip.id
+                    DSChip(label: chip.label, isSelected: isSelected) {
+                        restDuration = chip.id
+                        restTimer.start(duration: chip.id)
                     }
-                    .buttonStyle(.plain)
-                    .animation(.easeInOut(duration: 0.12), value: isSelected)
                 }
             }
         }

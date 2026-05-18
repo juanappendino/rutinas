@@ -348,6 +348,195 @@ struct DSAlert: View {
     }
 }
 
+// MARK: — DS Segmented Control
+
+/// Selector de tabs estilo pill — naranja sólido sobre fondo surface.
+struct DSSegmentedControl: View {
+    let labels: [String]
+    @Binding var selection: Int
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(labels.indices, id: \.self) { i in
+                let selected = selection == i
+                Button {
+                    withAnimation(.easeInOut(duration: 0.15)) { selection = i }
+                } label: {
+                    Text(labels[i])
+                        .font(.geist(11, weight: selected ? .semiBold : .regular))
+                        .tracking(0.8)
+                        .foregroundStyle(selected ? Color.dsOnPrimary : Color.dsFg3)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 9)
+                        .background(selected ? Color.dsNaranja : Color.clear)
+                        .clipShape(RoundedRectangle(cornerRadius: 2))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(3)
+        .background(Color.dsSurface)
+        .clipShape(RoundedRectangle(cornerRadius: 4))
+        .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.dsHairline, lineWidth: 1))
+    }
+}
+
+// MARK: — DS Chip
+
+/// Chip individual de selección (ej: 30S, 1M, 2M).
+/// - selected: naranja sólido + texto dsOnPrimary
+/// - idle: borde hairline + texto dsFg3
+struct DSChip: View {
+    let label: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(label)
+                .font(.geist(11, weight: isSelected ? .semiBold : .regular))
+                .tracking(0.5)
+                .foregroundStyle(isSelected ? Color.dsOnPrimary : Color.dsFg3)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 6)
+                .background(isSelected ? Color.dsNaranja : Color.clear)
+                .clipShape(RoundedRectangle(cornerRadius: 2))
+                .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(
+                    isSelected ? Color.clear : Color.dsHairline, lineWidth: 1
+                ))
+        }
+        .buttonStyle(.plain)
+        .animation(.easeInOut(duration: 0.12), value: isSelected)
+    }
+}
+
+/// Fila de chips de selección única.
+struct DSChipGroup<ID: Hashable>: View {
+    let items: [(id: ID, label: String)]
+    @Binding var selection: ID
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(items, id: \.id) { item in
+                DSChip(label: item.label, isSelected: selection == item.id) {
+                    selection = item.id
+                }
+            }
+        }
+    }
+}
+
+// MARK: — DS Stat Block
+
+/// Bloque de estadística: eyebrow + valor grande + unidad opcional.
+struct DSStatBlock: View {
+    let label: String
+    let value: String
+    let unit: String
+    var delay: Double = 0
+    @State private var appeared = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label)
+                .font(.geist(9, weight: .semiBold))
+                .foregroundStyle(Color.dsFg4)
+                .tracking(1.8)
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text(value)
+                    .font(.geist(28, weight: .bold))
+                    .foregroundStyle(Color.dsFg1)
+                if !unit.isEmpty {
+                    Text(unit)
+                        .font(.geist(12, weight: .medium))
+                        .foregroundStyle(Color.dsFg3)
+                        .tracking(0.5)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(24)
+        .background(Color.dsCard)
+        .clipShape(RoundedRectangle(cornerRadius: 4))
+        .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.dsHairline, lineWidth: 1))
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 14)
+        .animation(.easeOut(duration: 0.32).delay(delay), value: appeared)
+        .onAppear { appeared = true }
+    }
+}
+
+// MARK: — DS Progress Ring
+
+/// Anillo de progreso circular.
+/// - progress: 0.0 → 1.0
+/// - color: color del arco activo (por defecto dsNaranja)
+/// - trackColor: color del track de fondo (por defecto dsHairline)
+struct DSProgressRing: View {
+    let progress: Double
+    var color: Color = .dsNaranja
+    var trackColor: Color = .dsHairline
+    var lineWidth: CGFloat = 4
+    var size: CGFloat = 44
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(trackColor, lineWidth: lineWidth)
+            Circle()
+                .trim(from: 0, to: progress)
+                .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .animation(.easeInOut(duration: 0.25), value: progress)
+        }
+        .frame(width: size, height: size)
+    }
+}
+
+// MARK: — DS Page Header
+
+/// Header de pantalla: eyebrow superior + título H1 + slot de acciones a la derecha.
+struct DSPageHeader<Actions: View>: View {
+    let eyebrow: String
+    let title: String
+    @ViewBuilder let actions: Actions
+
+    init(eyebrow: String, title: String, @ViewBuilder actions: () -> Actions) {
+        self.eyebrow = eyebrow
+        self.title = title
+        self.actions = actions()
+    }
+
+    var body: some View {
+        HStack(alignment: .bottom) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(eyebrow.uppercased())
+                    .font(.geist(9, weight: .semiBold))
+                    .foregroundStyle(Color.dsFg3)
+                    .tracking(2.0)
+                Text(title.uppercased())
+                    .font(.geist(28, weight: .bold))
+                    .foregroundStyle(Color.dsFg1)
+                    .tracking(0.5)
+            }
+            Spacer()
+            actions
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 16)
+        .padding(.bottom, 20)
+    }
+}
+
+// Variante sin acciones
+extension DSPageHeader where Actions == EmptyView {
+    init(eyebrow: String, title: String) {
+        self.eyebrow = eyebrow
+        self.title = title
+        self.actions = EmptyView()
+    }
+}
+
 // MARK: — Hide navigation bar
 
 private struct NavigationBarHider: UIViewControllerRepresentable {

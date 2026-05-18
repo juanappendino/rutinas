@@ -18,7 +18,7 @@ struct SessionCompleteView: View {
                     Text("SESIÓN COMPLETA")
                         .font(.geist(9, weight: .semiBold))
                         .foregroundStyle(Color.dsNaranja)
-                        .tracking(2.5)
+                        .tracking(1.8)
                         .opacity(appeared ? 1 : 0)
                         .offset(y: appeared ? 0 : 12)
                         .animation(.easeOut(duration: 0.3).delay(0.05), value: appeared)
@@ -31,19 +31,19 @@ struct SessionCompleteView: View {
                         .offset(y: appeared ? 0 : 16)
                         .animation(.easeOut(duration: 0.35).delay(0.1), value: appeared)
                 }
-                .padding(.bottom, 40)
+                .padding(.bottom, 24)
 
                 // — Stats grid
                 VStack(spacing: 8) {
                     HStack(spacing: 8) {
-                        StatBlock(label: "DURACIÓN",
-                                  value: summary.durationMinutes > 0 ? "\(summary.durationMinutes)" : "—",
-                                  unit: summary.durationMinutes > 0 ? "MIN" : "",
-                                  delay: 0.18)
-                        StatBlock(label: "SERIES",
-                                  value: "\(summary.totalSets)",
-                                  unit: "",
-                                  delay: 0.24)
+                        DSStatBlock(label: "DURACIÓN",
+                                    value: summary.durationMinutes > 0 ? "\(summary.durationMinutes)" : "—",
+                                    unit: summary.durationMinutes > 0 ? "MIN" : "",
+                                    delay: 0.18)
+                        DSStatBlock(label: "SERIES",
+                                    value: "\(summary.totalSets)",
+                                    unit: "",
+                                    delay: 0.24)
                     }
 
                     if let h = summary.heaviestExercise {
@@ -74,45 +74,6 @@ struct SessionCompleteView: View {
             }
             withAnimation { appeared = true }
         }
-    }
-}
-
-// MARK: — Stat block
-
-private struct StatBlock: View {
-    let label: String
-    let value: String
-    let unit: String
-    let delay: Double
-    @State private var appeared = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label)
-                .font(.geist(9, weight: .semiBold))
-                .foregroundStyle(Color.dsFg4)
-                .tracking(1.8)
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(value)
-                    .font(.geist(28, weight: .bold))
-                    .foregroundStyle(Color.dsFg1)
-                if !unit.isEmpty {
-                    Text(unit)
-                        .font(.geist(12, weight: .medium))
-                        .foregroundStyle(Color.dsFg3)
-                        .tracking(0.5)
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(Color.dsCard)
-        .clipShape(RoundedRectangle(cornerRadius: 4))
-        .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.dsHairline, lineWidth: 1))
-        .opacity(appeared ? 1 : 0)
-        .offset(y: appeared ? 0 : 14)
-        .animation(.easeOut(duration: 0.32).delay(delay), value: appeared)
-        .onAppear { appeared = true }
     }
 }
 
@@ -148,7 +109,7 @@ private struct HeaviestBlock: View {
                     .tracking(0.5)
             }
         }
-        .padding(16)
+        .padding(24)
         .background(Color.dsCard)
         .clipShape(RoundedRectangle(cornerRadius: 4))
         .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.dsHairline, lineWidth: 1))
@@ -169,7 +130,7 @@ private struct PRsBlock: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 6) {
-                Image(systemName: "trophy.fill")
+                Image(systemName: "star.fill")
                     .font(.system(size: 11))
                     .foregroundStyle(Color.dsNaranja)
                 Text(prs.count == 1 ? "NUEVO PR" : "\(prs.count) NUEVOS PRs")
@@ -207,7 +168,7 @@ private struct PRsBlock: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
+        .padding(24)
         .background(Color.dsNaranja.opacity(0.06))
         .clipShape(RoundedRectangle(cornerRadius: 4))
         .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.dsNaranja.opacity(0.25), lineWidth: 1))
