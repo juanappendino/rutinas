@@ -40,9 +40,9 @@ extension Color {
 // MARK: — Font helpers
 
 extension Font {
-    /// Fuente principal: IBM Plex Mono — monoespaciada, industrial, sin adornos.
+    /// Fuente de display/UI: Geist — sans-serif geométrica, para labels, títulos y eyebrows.
     static func geist(_ size: CGFloat, weight: GeistWeight = .regular) -> Font {
-        .custom(weight.plexMonoName, size: size)
+        .custom(weight.geistName, size: size)
     }
 
     enum GeistWeight {
@@ -61,6 +61,21 @@ extension Font {
             }
         }
 
+        /// Nombre PostScript de Geist (sans-serif, para UI/labels)
+        var geistName: String {
+            switch self {
+            case .thin:      return "Geist-Thin"
+            case .light:     return "Geist-Light"
+            case .regular:   return "Geist-Regular"
+            case .medium:    return "Geist-Medium"
+            case .semiBold:  return "Geist-SemiBold"
+            case .bold:      return "Geist-Bold"
+            case .extraBold: return "Geist-ExtraBold"
+            case .black:     return "Geist-Black"
+            }
+        }
+
+        /// Nombre PostScript de IBM Plex Mono (para números grandes y displays monoespaciados)
         var plexMonoName: String {
             switch self {
             case .thin:      return "IBMPlexMono-Thin"
@@ -79,13 +94,36 @@ extension Font {
 // MARK: — Font registration
 
 func registerGeistFonts() {
-    let names = [
+    // Geist (sans-serif) — desde rutinas/Fonts/
+    let geistNames = [
+        "Geist-Thin", "Geist-ExtraLight", "Geist-Light", "Geist-Regular",
+        "Geist-Medium", "Geist-SemiBold", "Geist-Bold", "Geist-ExtraBold", "Geist-Black",
+    ]
+    for name in geistNames {
+        let paths = [name, "Fonts/\(name)"]
+        for path in paths {
+            if let url = Bundle.main.url(forResource: path, withExtension: "ttf") {
+                var error: Unmanaged<CFError>?
+                if CTFontManagerRegisterFontsForURL(url as CFURL, .process, &error) {
+                    print("✅ \(name) registrada")
+                    break
+                } else {
+                    print("⚠️ \(name) ya registrada o error: \(error.debugDescription)")
+                }
+            } else {
+                print("❌ \(name).ttf no encontrada en bundle")
+            }
+        }
+    }
+
+    // IBM Plex Mono — monoespaciada, para números grandes
+    let plexNames = [
         "IBMPlexMono-Thin", "IBMPlexMono-Light", "IBMPlexMono-Regular",
         "IBMPlexMono-Medium", "IBMPlexMono-SemiBold", "IBMPlexMono-Bold",
     ]
-    let basePath = "Geist,IBM_Plex_Mono,Karla/IBM_Plex_Mono"
-    for name in names {
-        let paths = [name, "\(basePath)/\(name)"]
+    let plexBasePath = "Geist,IBM_Plex_Mono,Karla/IBM_Plex_Mono"
+    for name in plexNames {
+        let paths = [name, "\(plexBasePath)/\(name)"]
         for path in paths {
             if let url = Bundle.main.url(forResource: path, withExtension: "ttf") {
                 var error: Unmanaged<CFError>?
