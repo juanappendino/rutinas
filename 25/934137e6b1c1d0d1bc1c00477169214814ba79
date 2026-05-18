@@ -1,0 +1,21 @@
+rutinas/TodayView.swift
+  s_fbae0f4831a135::t_c2b86ee8aa37ac 342-446
+  s_fbae0f4831a135::t_e3829de11eb223 50-120
+  s_fbae0f4831a135::t_02cf7686f35616 133,136
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "25934137e6b1c1d0d1bc1c00477169214814ba79",
+  "prompts": {},
+  "sessions": {
+    "s_fbae0f4831a135": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "188f7806-3194-4c80-b3e7-a70f623b9b81",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "jappen <juanappendino@gmail.com>"
+    }
+  }
+}
