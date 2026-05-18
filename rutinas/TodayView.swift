@@ -9,6 +9,7 @@ struct TodayView: View {
     @State private var showCancel = false
     @State private var showRoutinePicker = false
     @State private var sessionSummary: SessionSummary? = nil
+    @State private var activeExerciseID: UUID? = nil
 
     private var allExercises: [Exercise] {
         manager.todayRoutine.muscleGroups.flatMap(\.exercises)
@@ -30,6 +31,17 @@ struct TodayView: View {
         return allExercises.first {
             manager.completedSetIndices(for: $0).count < $0.sets
         }
+    }
+
+    // Ejercicio activo efectivo: el seleccionado por el usuario (si aún tiene sets) o el siguiente automático
+    private var effectiveActiveExerciseID: UUID? {
+        guard manager.activeSession != nil else { return nil }
+        if let id = activeExerciseID,
+           let ex = allExercises.first(where: { $0.id == id }),
+           manager.completedSetIndices(for: ex).count < ex.sets {
+            return id
+        }
+        return nextActiveExercise?.id
     }
 
     private var weekday: String {
@@ -84,11 +96,15 @@ struct TodayView: View {
                 if !isActive {
                     PreWorkoutInfo(groups: groups, streak: currentStreak)
                 } else {
-                    InWorkoutInfo(displayTime: stopwatch.displayTime, onCancel: { showCancel = true })
+                    InWorkoutInfo(onCancel: { showCancel = true })
                 }
 
                 Spacer()
-                MiniRing(done: doneSets, total: totalSets, isActive: isActive)
+                if !isActive {
+                    MiniRing(done: doneSets, total: totalSets, isActive: false)
+                } else {
+                    CompactStopwatchWidget()
+                }
             }
             if isActive {
                 SessionProgressBar(done: doneSets, total: totalSets)
@@ -135,13 +151,6 @@ struct TodayView: View {
                         // ── Stats strip (solo pre-entrenamiento) ─────────
                         statsStrip
 
-                        // ── Reloj analógico (sesión activa) ───────
-                        if manager.activeSession != nil {
-                            AnalogStopwatchBlock()
-                                .padding(.horizontal, 20)
-                                .padding(.bottom, 12)
-                        }
-
                         // ── Grupos de ejercicios ──────────────────
                         ForEach(Array(manager.todayRoutine.muscleGroups.enumerated()), id: \.element.id) { gi, group in
                             let doneInGroup = group.exercises.filter { manager.isCompleted($0) }.count
@@ -159,11 +168,15 @@ struct TodayView: View {
                                             Rectangle().fill(Color.dsHairline).frame(height: 1)
                                         }
                                         let globalIdx = exerciseIndex[exercise.id] ?? 0
-                                        let isNext = nextActiveExercise?.id == exercise.id
+                                        let isActive = effectiveActiveExerciseID == exercise.id
                                         ExerciseEditorialRow(
                                             exercise: exercise,
                                             index: globalIdx,
-                                            isNextUp: isNext
+                                            isNextUp: isActive,
+                                            onActivate: {
+                                                guard manager.activeSession != nil else { return }
+                                                activeExerciseID = exercise.id
+                                            }
                                         )
                                     }
                                 }
@@ -196,8 +209,8 @@ struct TodayView: View {
                         onFinish: { showFinish = true }
                     )
                     .padding(.horizontal, 20)
+                    .padding(.top, 12)
                     .padding(.bottom, 12)
-                    .padding(.top, restTimer.isRunning ? 12 : 0)
                 }
                 .background(Color.dsCanvas)
                 .overlay(alignment: .top) {
@@ -244,6 +257,9 @@ struct TodayView: View {
                 SessionCompleteView(summary: summary) {
                     sessionSummary = nil
                 }
+            }
+            .onChange(of: manager.activeSession == nil) { _, isNil in
+                if isNil { activeExerciseID = nil }
             }
         }
     }
@@ -347,21 +363,12 @@ private struct PreWorkoutInfo: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            if groups.count <= 3 {
-                Text(groups.joined(separator: " · ").uppercased())
-                    .font(.geist(12, weight: .medium))
-                    .foregroundStyle(Color.dsFg2)
-                    .tracking(0.6)
-            } else {
-                Text(groups.prefix(2).joined(separator: " · ").uppercased())
-                    .font(.geist(12, weight: .medium))
-                    .foregroundStyle(Color.dsFg2)
-                    .tracking(0.6)
-                Text(Array(groups.dropFirst(2)).joined(separator: " · ").uppercased())
-                    .font(.geist(12, weight: .medium))
-                    .foregroundStyle(Color.dsFg2)
-                    .tracking(0.6)
-            }
+            Text(groups.joined(separator: " · ").uppercased())
+                .font(.geist(12, weight: .medium))
+                .foregroundStyle(Color.dsFg2)
+                .tracking(0.6)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
             StatusPill(isActive: false)
             if streak >= 2 {
                 HStack(spacing: 4) {
@@ -378,7 +385,6 @@ private struct PreWorkoutInfo: View {
 }
 
 private struct InWorkoutInfo: View {
-    let displayTime: String
     let onCancel: () -> Void
 
     var body: some View {
@@ -387,10 +393,6 @@ private struct InWorkoutInfo: View {
                 .font(.geist(9, weight: .semiBold))
                 .foregroundStyle(Color.dsNaranja)
                 .tracking(1.8)
-            Text(displayTime)
-                .font(.system(size: 16, weight: .semibold).monospacedDigit())
-                .foregroundStyle(Color.dsFg3)
-                .tracking(0.4)
             Button(action: onCancel) {
                 Text("CANCELAR")
                     .font(.geist(9, weight: .semiBold))
@@ -441,6 +443,62 @@ private struct SessionProgressBar: View {
             }
             .frame(height: 3)
         }
+    }
+}
+
+// MARK: — Compact stopwatch widget (header derecho durante sesión)
+
+private struct CompactStopwatchWidget: View {
+    @Environment(StopwatchTimer.self) var stopwatch
+
+    var body: some View {
+        VStack(alignment: .trailing, spacing: 5) {
+            Text(stopwatch.mode == .countdown ? "TEMPORIZADOR" : "CRONÓMETRO")
+                .font(.geist(8, weight: .semiBold))
+                .foregroundStyle(stopwatch.mode == .countdown ? Color.dsNaranja : Color.dsFg4)
+                .tracking(1.4)
+                .animation(.easeInOut(duration: 0.2), value: stopwatch.mode == .countdown)
+            Text(stopwatch.displayTime)
+                .font(.system(size: 20, weight: .bold).monospacedDigit())
+                .foregroundStyle(stopwatch.isFinished ? Color.dsNaranja : Color.dsFg1)
+                .tracking(-0.5)
+            HStack(spacing: 5) {
+                // Chips 30s / 1m
+                ForEach([(30,"30S"),(60,"1M")], id: \.0) { sec, label in
+                    let isSelected = stopwatch.mode == .countdown && stopwatch.countdownTarget == sec
+                    DSChip(label: label, isSelected: isSelected) {
+                        stopwatch.startCountdown(seconds: sec)
+                    }
+                }
+                // Reset / cancel
+                Button {
+                    if stopwatch.mode == .countdown { stopwatch.switchToStopwatch() }
+                    else { stopwatch.reset() }
+                } label: {
+                    Image(systemName: stopwatch.mode == .countdown ? "xmark" : "arrow.counterclockwise")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Color.dsFg2)
+                        .frame(width: 28, height: 28)
+                        .background(Color.dsSurface)
+                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                        .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color.dsHairline, lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                // Play / pause
+                Button { stopwatch.toggle() } label: {
+                    Image(systemName: stopwatch.isRunning ? "pause.fill" : "play.fill")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Color.dsNaranja)
+                        .frame(width: 28, height: 28)
+                        .background(Color.dsSurface)
+                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                        .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color.dsHairline, lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                .animation(.easeInOut(duration: 0.14), value: stopwatch.isRunning)
+            }
+        }
+        .padding(.top, 4)
     }
 }
 
@@ -737,6 +795,7 @@ struct ExerciseEditorialRow: View {
     let exercise: Exercise
     let index: Int
     let isNextUp: Bool
+    var onActivate: (() -> Void)? = nil
     @State private var showSetLog = false
     @State private var pendingSetIndex: Int = 0
     @State private var showDescription = false
@@ -778,11 +837,11 @@ struct ExerciseEditorialRow: View {
                 // Nombre + fracción
                 HStack(alignment: .top, spacing: 8) {
                     HStack(spacing: 6) {
-                        Text(exercise.name.uppercased())
+                        Text(exercise.name)
                             .font(.geist(14, weight: .bold))
                             .foregroundStyle(isCompleted ? Color.dsFg3 : Color.dsFg1)
                             .strikethrough(isCompleted, color: Color.dsFg3.opacity(0.5))
-                            .tracking(0.5)
+                            .tracking(0.3)
                             .fixedSize(horizontal: false, vertical: true)
                         if !exercise.description.isEmpty {
                             Button { showDescription = true } label: {
@@ -794,16 +853,23 @@ struct ExerciseEditorialRow: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                    // Fracción series
-                    HStack(spacing: 0) {
-                        Text("\(completedSets.count)")
-                            .foregroundStyle(isCompleted ? Color.dsNaranja : Color.dsFg4)
-                        Text("/\(exercise.sets)")
-                            .foregroundStyle(Color.dsFg4)
+                    // Fracción series / checkmark
+                    if isCompleted {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 16))
+                            .foregroundStyle(Color.dsNaranja)
+                            .padding(.top, 2)
+                    } else {
+                        HStack(spacing: 0) {
+                            Text("\(completedSets.count)")
+                                .foregroundStyle(Color.dsFg4)
+                            Text("/\(exercise.sets)")
+                                .foregroundStyle(Color.dsFg4)
+                        }
+                        .font(.system(size: 11, weight: .medium).monospacedDigit())
+                        .tracking(0.4)
+                        .padding(.top, 4)
                     }
-                    .font(.system(size: 11, weight: .medium).monospacedDigit())
-                    .tracking(0.4)
-                    .padding(.top, 4)
                 }
 
                 // Subtítulo: sets×reps + peso
@@ -848,8 +914,8 @@ struct ExerciseEditorialRow: View {
                 }
                 .padding(.top, 4)
 
-                // Botones de series (solo en sesión activa)
-                if isSessionActive {
+                // Botones de series (solo en el ejercicio activo)
+                if isSessionActive && isNextUp {
                     HStack(spacing: 4) {
                         ForEach(0..<exercise.sets, id: \.self) { i in
                             let done = completedSets.contains(i)
@@ -902,7 +968,10 @@ struct ExerciseEditorialRow: View {
             }
         }
         .padding(.vertical, 14)
-        .opacity(isCompleted ? 0.4 : 1.0)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if isSessionActive { onActivate?() }
+        }
         .animation(.easeOut(duration: 0.18), value: isCompleted)
         .overlay(alignment: .leading) {
             Rectangle()
