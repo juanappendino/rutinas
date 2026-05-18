@@ -47,6 +47,77 @@ struct TodayView: View {
         manager.currentStreak(history: manager.history)
     }
 
+    @ViewBuilder private var heroHeader: some View {
+        let isActive = manager.activeSession != nil
+        let groups = manager.todayRoutine.muscleGroups.map(\.name)
+        VStack(alignment: .leading, spacing: 0) {
+            if !isActive {
+                Text("RUTINA DE HOY · \(weekday)")
+                    .font(.geist(9, weight: .semiBold))
+                    .foregroundStyle(Color.dsFg3)
+                    .tracking(1.8)
+                    .padding(.bottom, 14)
+            }
+            HStack(alignment: .top, spacing: 14) {
+                Button {
+                    guard !isActive else { return }
+                    showRoutinePicker = true
+                } label: {
+                    ZStack(alignment: .bottomTrailing) {
+                        DayNumeral(
+                            dayNumber: manager.todayRoutine.dayNumber,
+                            variant: manager.todayRoutine.variant,
+                            size: isActive ? 42 : 72
+                        )
+                        if !isActive {
+                            Image(systemName: "chevron.up.chevron.down")
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(Color.dsFg4)
+                                .offset(x: 2, y: 2)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(isActive)
+                .animation(.easeOut(duration: 0.2), value: isActive)
+
+                if !isActive {
+                    PreWorkoutInfo(groups: groups, streak: currentStreak)
+                } else {
+                    InWorkoutInfo(displayTime: stopwatch.displayTime, onCancel: { showCancel = true })
+                }
+
+                Spacer()
+                MiniRing(done: doneSets, total: totalSets, isActive: isActive)
+            }
+            if isActive {
+                SessionProgressBar(done: doneSets, total: totalSets)
+                    .padding(.top, 14)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+        .padding(.bottom, isActive ? 14 : 20)
+        .animation(.easeOut(duration: 0.2), value: isActive)
+    }
+
+    @ViewBuilder private var statsStrip: some View {
+        if manager.activeSession == nil && !allExercises.isEmpty {
+            HStack(spacing: 0) {
+                TodayStatCell(label: "EJERCICIOS", value: "\(allExercises.count)", unit: nil)
+                Rectangle().fill(Color.dsHairline).frame(width: 1, height: 32)
+                TodayStatCell(label: "SERIES", value: "\(totalSets)", unit: nil)
+                Rectangle().fill(Color.dsHairline).frame(width: 1, height: 32)
+                TodayStatCell(label: "ESTIMADO", value: "~\(estimatedMinutes)", unit: "MIN")
+            }
+            .padding(.vertical, 14)
+            .overlay(alignment: .top) { Rectangle().fill(Color.dsHairline).frame(height: 1) }
+            .overlay(alignment: .bottom) { Rectangle().fill(Color.dsHairline).frame(height: 1) }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 8)
+        }
+    }
+
     var body: some View {
         let _ = print("🟢 TodayView rendering. routines: \(manager.routines.count), exercises: \(allExercises.count)")
         return NavigationStack {
@@ -59,160 +130,10 @@ struct TodayView: View {
                     VStack(alignment: .leading, spacing: 0) {
 
                         // ── Hero header ───────────────────────────
-                        VStack(alignment: .leading, spacing: 0) {
-                            // Eyebrow editorial (solo pre-entrenamiento)
-                            if manager.activeSession == nil {
-                                Text("RUTINA DE HOY · \(weekday)")
-                                    .font(.geist(9, weight: .semiBold))
-                                    .foregroundStyle(Color.dsFg3)
-                                    .tracking(1.8)
-                                    .padding(.bottom, 14)
-                                    .transition(.opacity)
-                            }
-
-                            HStack(alignment: .top, spacing: 14) {
-                                // Numeral tappeable (solo sin sesión activa)
-                                Button {
-                                    guard manager.activeSession == nil else { return }
-                                    showRoutinePicker = true
-                                } label: {
-                                    ZStack(alignment: .bottomTrailing) {
-                                        DayNumeral(
-                                            dayNumber: manager.todayRoutine.dayNumber,
-                                            variant: manager.todayRoutine.variant,
-                                            size: manager.activeSession == nil ? 72 : 42
-                                        )
-                                        if manager.activeSession == nil {
-                                            Image(systemName: "chevron.up.chevron.down")
-                                                .font(.system(size: 9, weight: .semibold))
-                                                .foregroundStyle(Color.dsFg4)
-                                                .offset(x: 2, y: 2)
-                                        }
-                                    }
-                                }
-                                .buttonStyle(.plain)
-                                .disabled(manager.activeSession != nil)
-                                .animation(.easeOut(duration: 0.2), value: manager.activeSession != nil)
-
-                                if manager.activeSession == nil {
-                                    // Pre-entrenamiento: grupos musculares + status
-                                    let groups = manager.todayRoutine.muscleGroups.map(\.name)
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        if groups.count <= 3 {
-                                            Text(groups.joined(separator: " · ").uppercased())
-                                                .font(.geist(12, weight: .medium))
-                                                .foregroundStyle(Color.dsFg2)
-                                                .tracking(0.6)
-                                        } else {
-                                            Text(groups.prefix(2).joined(separator: " · ").uppercased())
-                                                .font(.geist(12, weight: .medium))
-                                                .foregroundStyle(Color.dsFg2)
-                                                .tracking(0.6)
-                                            Text(groups.dropFirst(2).joined(separator: " · ").uppercased())
-                                                .font(.geist(12, weight: .medium))
-                                                .foregroundStyle(Color.dsFg2)
-                                                .tracking(0.6)
-                                        }
-                                        StatusPill(isActive: false)
-                                        if currentStreak >= 2 {
-                                            HStack(spacing: 4) {
-                                                Image(systemName: "flame.fill")
-                                                    .font(.system(size: 9, weight: .bold))
-                                                Text("\(currentStreak) días")
-                                                    .font(.system(size: 11, weight: .semibold).monospacedDigit())
-                                            }
-                                            .foregroundStyle(Color.dsNaranja)
-                                        }
-                                    }
-                                    .padding(.top, 10)
-                                } else {
-                                    // En sesión: label + tiempo transcurrido + cancelar
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text("EN SESIÓN")
-                                            .font(.geist(9, weight: .semiBold))
-                                            .foregroundStyle(Color.dsNaranja)
-                                            .tracking(1.8)
-                                        Text(stopwatch.displayTime)
-                                            .font(.system(size: 16, weight: .semibold).monospacedDigit())
-                                            .foregroundStyle(Color.dsFg3)
-                                            .tracking(0.4)
-                                        Button {
-                                            showCancel = true
-                                        } label: {
-                                            Text("CANCELAR")
-                                                .font(.geist(9, weight: .semiBold))
-                                                .tracking(1.2)
-                                                .foregroundStyle(Color.dsRojo400)
-                                                .padding(.horizontal, 8)
-                                                .padding(.vertical, 4)
-                                                .background(Color.dsRojo.opacity(0.08))
-                                                .clipShape(RoundedRectangle(cornerRadius: 2))
-                                                .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(Color.dsRojo400.opacity(0.25), lineWidth: 1))
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                                    .padding(.top, 4)
-                                }
-
-                                Spacer()
-                                MiniRing(done: doneSets, total: totalSets, isActive: manager.activeSession != nil)
-                            }
-
-                            // Barra de progreso lineal (solo en sesión)
-                            if manager.activeSession != nil {
-                                VStack(spacing: 6) {
-                                    HStack {
-                                        Text("PROGRESO")
-                                            .font(.geist(9, weight: .semiBold))
-                                            .foregroundStyle(Color.dsFg4)
-                                            .tracking(1.6)
-                                        Spacer()
-                                        HStack(spacing: 0) {
-                                            Text("\(doneSets)")
-                                                .foregroundStyle(Color.dsNaranja)
-                                            Text("/\(totalSets)")
-                                                .foregroundStyle(Color.dsFg4)
-                                        }
-                                        .font(.system(size: 12, weight: .semibold).monospacedDigit())
-                                    }
-                                    GeometryReader { geo in
-                                        ZStack(alignment: .leading) {
-                                            RoundedRectangle(cornerRadius: 2)
-                                                .fill(Color.dsHairline)
-                                                .frame(height: 3)
-                                            RoundedRectangle(cornerRadius: 2)
-                                                .fill(Color.dsNaranja)
-                                                .frame(width: totalSets > 0 ? geo.size.width * CGFloat(doneSets) / CGFloat(totalSets) : 0, height: 3)
-                                                .animation(.easeOut(duration: 0.3), value: doneSets)
-                                        }
-                                    }
-                                    .frame(height: 3)
-                                }
-                                .padding(.top, 14)
-                                .transition(.opacity.combined(with: .move(edge: .top)))
-                            }
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 8)
-                        .padding(.bottom, manager.activeSession != nil ? 14 : 20)
-                        .animation(.easeOut(duration: 0.2), value: manager.activeSession != nil)
+                        heroHeader
 
                         // ── Stats strip (solo pre-entrenamiento) ─────────
-                        if manager.activeSession == nil && !allExercises.isEmpty {
-                            HStack(spacing: 0) {
-                                TodayStatCell(label: "EJERCICIOS", value: "\(allExercises.count)", unit: nil)
-                                Rectangle().fill(Color.dsHairline).frame(width: 1, height: 32)
-                                TodayStatCell(label: "SERIES", value: "\(totalSets)", unit: nil)
-                                Rectangle().fill(Color.dsHairline).frame(width: 1, height: 32)
-                                TodayStatCell(label: "ESTIMADO", value: "~\(estimatedMinutes)", unit: "MIN")
-                            }
-                            .padding(.vertical, 14)
-                            .overlay(alignment: .top) { Rectangle().fill(Color.dsHairline).frame(height: 1) }
-                            .overlay(alignment: .bottom) { Rectangle().fill(Color.dsHairline).frame(height: 1) }
-                            .padding(.horizontal, 20)
-                            .padding(.bottom, 8)
-                            .transition(.opacity)
-                        }
+                        statsStrip
 
                         // ── Reloj analógico (sesión activa) ───────
                         if manager.activeSession != nil {
@@ -415,6 +336,111 @@ private struct RoutinePickerSheet: View {
         }
         .presentationDetents([.medium, .large])
         .presentationBackground(Color.dsCanvas)
+    }
+}
+
+// MARK: — Pre/In-workout header sub-views
+
+private struct PreWorkoutInfo: View {
+    let groups: [String]
+    let streak: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if groups.count <= 3 {
+                Text(groups.joined(separator: " · ").uppercased())
+                    .font(.geist(12, weight: .medium))
+                    .foregroundStyle(Color.dsFg2)
+                    .tracking(0.6)
+            } else {
+                Text(groups.prefix(2).joined(separator: " · ").uppercased())
+                    .font(.geist(12, weight: .medium))
+                    .foregroundStyle(Color.dsFg2)
+                    .tracking(0.6)
+                Text(Array(groups.dropFirst(2)).joined(separator: " · ").uppercased())
+                    .font(.geist(12, weight: .medium))
+                    .foregroundStyle(Color.dsFg2)
+                    .tracking(0.6)
+            }
+            StatusPill(isActive: false)
+            if streak >= 2 {
+                HStack(spacing: 4) {
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 9, weight: .bold))
+                    Text("\(streak) días")
+                        .font(.system(size: 11, weight: .semibold).monospacedDigit())
+                }
+                .foregroundStyle(Color.dsNaranja)
+            }
+        }
+        .padding(.top, 10)
+    }
+}
+
+private struct InWorkoutInfo: View {
+    let displayTime: String
+    let onCancel: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("EN SESIÓN")
+                .font(.geist(9, weight: .semiBold))
+                .foregroundStyle(Color.dsNaranja)
+                .tracking(1.8)
+            Text(displayTime)
+                .font(.system(size: 16, weight: .semibold).monospacedDigit())
+                .foregroundStyle(Color.dsFg3)
+                .tracking(0.4)
+            Button(action: onCancel) {
+                Text("CANCELAR")
+                    .font(.geist(9, weight: .semiBold))
+                    .tracking(1.2)
+                    .foregroundStyle(Color.dsRojo400)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.dsRojo.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: 2))
+                    .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(Color.dsRojo400.opacity(0.25), lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.top, 4)
+    }
+}
+
+private struct SessionProgressBar: View {
+    let done: Int
+    let total: Int
+
+    var body: some View {
+        VStack(spacing: 6) {
+            HStack {
+                Text("PROGRESO")
+                    .font(.geist(9, weight: .semiBold))
+                    .foregroundStyle(Color.dsFg4)
+                    .tracking(1.6)
+                Spacer()
+                HStack(spacing: 0) {
+                    Text("\(done)")
+                        .foregroundStyle(Color.dsNaranja)
+                    Text("/\(total)")
+                        .foregroundStyle(Color.dsFg4)
+                }
+                .font(.system(size: 12, weight: .semibold).monospacedDigit())
+            }
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color.dsHairline)
+                        .frame(height: 3)
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color.dsNaranja)
+                        .frame(width: total > 0 ? geo.size.width * CGFloat(done) / CGFloat(total) : 0, height: 3)
+                        .animation(.easeOut(duration: 0.3), value: done)
+                }
+            }
+            .frame(height: 3)
+        }
     }
 }
 
