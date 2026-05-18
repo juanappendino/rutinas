@@ -977,6 +977,7 @@ struct SetLogSheet: View {
     @State private var timeMinutes: Int
     @State private var timeSeconds: Int
     @State private var distanceStr: String
+    @State private var perSide: Bool = false
 
     private let numpadKeys = ["1","2","3","4","5","6","7","8","9",".","0","del"]
 
@@ -1007,14 +1008,18 @@ struct SetLogSheet: View {
         }
     }
 
-    private var numericWeight: Double {
+    /// Peso tal como está en el campo (lo que el usuario ve — por lado si perSide, total si no)
+    private var rawWeight: Double {
         Double(weightStr.replacingOccurrences(of: ",", with: ".")) ?? 0
     }
+    /// Peso total que se guarda en el log (rawWeight × 2 si perSide)
+    private var numericWeight: Double { perSide ? rawWeight * 2 : rawWeight }
 
     // Altura fija por modo — se aplica solo al inicializar, no cambia durante la sesión
     private var initialDetent: PresentationDetent {
         let hasLast = lastWeight != nil
-        let h: CGFloat = 16 + 18 + 60 + (hasLast ? 80 : 0) + 44 + 88 + 186 + 52 + 70 + 28
+        // +44 por el toggle "por lado"
+        let h: CGFloat = 16 + 18 + 60 + (hasLast ? 80 : 0) + 44 + 88 + 186 + 52 + 44 + 70 + 28
         return .height(min(h, 720))
     }
     private var numericTime: Double { Double(timeMinutes * 60 + timeSeconds) }
@@ -1060,7 +1065,7 @@ struct SetLogSheet: View {
 
                     // — Referencia anterior (bloque prominente)
                     if let lw = lastWeight, mode != .time {
-                        lastSessionBlock(lastKg: lw)
+                        lastSessionBlock(lastKg: lw, perSide: perSide)
                             .padding(.horizontal, 20)
                             .padding(.top, 14)
                             .transition(.opacity.combined(with: .move(edge: .top)))
@@ -1095,15 +1100,26 @@ struct SetLogSheet: View {
         .presentationDetents([initialDetent, .large])
         .presentationDragIndicator(.hidden)
         .presentationBackground(Color.dsElevated)
+        .onChange(of: perSide) { _, newVal in
+            // Convierte el weightStr al nuevo modo: dividir o multiplicar x2
+            let current = Double(weightStr.replacingOccurrences(of: ",", with: ".")) ?? 0
+            guard current > 0 else { return }
+            let converted = newVal ? current / 2 : current * 2
+            weightStr = converted == Double(Int(converted))
+                ? "\(Int(converted))"
+                : String(format: "%.1f", converted)
+        }
     }
 
     // — Bloque "última vez"
-    private func lastSessionBlock(lastKg: Double) -> some View {
+    private func lastSessionBlock(lastKg: Double, perSide: Bool) -> some View {
+        // Si perSide está activo, comparamos el peso total guardado vs el input actual (total)
+        let displayLastKg = perSide ? lastKg / 2 : lastKg
         let delta = numericWeight - lastKg
         let isAbove  = delta > 0.01
         let isBelow  = delta < -0.01
 
-        // PR: supera el máximo histórico
+        // PR: supera el máximo histórico (siempre en términos de peso total)
         let isPR: Bool = {
             guard let maxKg = allTimeMaxKg else { return false }
             return numericWeight > maxKg + 0.01
@@ -1118,12 +1134,20 @@ struct SetLogSheet: View {
 
         return HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("ÚLTIMA VEZ")
-                    .font(.geist(9, weight: .semiBold))
-                    .foregroundStyle(Color.dsFg4)
-                    .tracking(1.8)
+                HStack(spacing: 6) {
+                    Text("ÚLTIMA VEZ")
+                        .font(.geist(9, weight: .semiBold))
+                        .foregroundStyle(Color.dsFg4)
+                        .tracking(1.8)
+                    if perSide {
+                        Text("· POR LADO")
+                            .font(.geist(9, weight: .semiBold))
+                            .foregroundStyle(Color.dsNaranja.opacity(0.7))
+                            .tracking(1.4)
+                    }
+                }
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Text(String(format: "%.1f", lastKg))
+                    Text(String(format: "%.1f", displayLastKg))
                         .font(.system(size: 28, weight: .bold).monospacedDigit())
                         .foregroundStyle(Color.dsFg1)
                         .tracking(-0.56)
@@ -1173,15 +1197,16 @@ struct SetLogSheet: View {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(weightStr)
                     .font(.custom("IBMPlexMono-Bold", size: 56))
-                    .foregroundStyle(numericWeight > 0 ? Color.dsFg1 : Color.dsFg4)
+                    .foregroundStyle(rawWeight > 0 ? Color.dsFg1 : Color.dsFg4)
                     .tracking(-1.5)
                     .frame(minWidth: 120, alignment: .trailing)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("KG")
+                    Text(perSide ? "KG/LADO" : "KG")
                         .font(.geist(14, weight: .semiBold))
-                        .foregroundStyle(Color.dsFg3)
+                        .foregroundStyle(perSide ? Color.dsNaranja : Color.dsFg3)
                         .tracking(1.2)
-                    if numericWeight == 0 {
+                        .animation(.easeInOut(duration: 0.15), value: perSide)
+                    if rawWeight == 0 {
                         Text("opcional")
                             .font(.geist(9, weight: .regular))
                             .foregroundStyle(Color.dsFg4)
@@ -1201,6 +1226,47 @@ struct SetLogSheet: View {
         weightNumpad
             .padding(.horizontal, 20)
             .padding(.top, 12)
+
+        // Toggle "por lado" (mancuernas / unilateral)
+        Button {
+            withAnimation(.easeInOut(duration: 0.15)) { perSide.toggle() }
+        } label: {
+            HStack(spacing: 8) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(perSide ? Color.dsNaranja : Color.dsSurface)
+                        .frame(width: 18, height: 18)
+                        .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(
+                            perSide ? Color.clear : Color.dsHairline, lineWidth: 1
+                        ))
+                    if perSide {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(Color.dsOnPrimary)
+                    }
+                }
+                Text("POR LADO")
+                    .font(.geist(12, weight: perSide ? .semiBold : .regular))
+                    .foregroundStyle(perSide ? Color.dsNaranja : Color.dsFg3)
+                    .tracking(0.8)
+                if perSide, rawWeight > 0 {
+                    Text("→ \(String(format: "%.1f", numericWeight)) kg total")
+                        .font(.geist(11, weight: .regular))
+                        .foregroundStyle(Color.dsFg4)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(perSide ? Color.dsNaranja.opacity(0.06) : Color.dsCard)
+            .clipShape(RoundedRectangle(cornerRadius: 3))
+            .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(
+                perSide ? Color.dsNaranja.opacity(0.3) : Color.dsHairline, lineWidth: 1
+            ))
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
 
         repsStepperRow
             .padding(.horizontal, 20)
@@ -1532,7 +1598,8 @@ struct SetLogSheet: View {
     }
 
     private func adjustWeight(_ delta: Double) {
-        let new = max(0, numericWeight + delta)
+        // Los botones ±2.5 operan sobre el valor visible (rawWeight), no el total
+        let new = max(0, rawWeight + delta)
         weightStr = new == Double(Int(new)) ? "\(Int(new))" : String(format: "%.1f", new)
     }
 

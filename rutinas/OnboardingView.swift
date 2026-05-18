@@ -14,7 +14,7 @@ struct OnboardingView: View {
 
                 // — Logo / marca
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("BITÁCORA")
+                    Text("RUT1NAS")
                         .font(.geist(11, weight: .semiBold))
                         .foregroundStyle(Color.dsNaranja)
                         .tracking(3)

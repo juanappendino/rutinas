@@ -251,9 +251,11 @@ class WorkoutManager {
         // Series totales completadas
         let totalSets = session.completedSetsLog.values.reduce(0) { $0 + $1.count }
 
-        // Ejercicio más pesado de la sesión
+        // Ejercicio más pesado de la sesión (excluye cardio/tiempo)
         let heaviest: (name: String, kg: Double)? = allExercises.compactMap { ex -> (String, Double)? in
-            guard let kg = session.weightLog[ex.id.uuidString] else { return nil }
+            let key = ex.id.uuidString
+            let type = SetType(rawValue: session.setTypeLog[key] ?? "") ?? .weightReps
+            guard type != .time, let kg = session.weightLog[key] else { return nil }
             return (ex.name, kg)
         }.max { $0.1 < $1.1 }
 

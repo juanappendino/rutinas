@@ -306,13 +306,25 @@ struct HistoryView: View {
     }
 
     private func emptyState(label: String) -> some View {
-        VStack(spacing: 8) {
-            Text(label)
-                .font(.geist(13, weight: .semiBold))
+        VStack(alignment: .leading, spacing: 12) {
+            Rectangle()
+                .fill(Color.dsHairline)
+                .frame(height: 1)
+            Text("[ ARCHIVO VACÍO ]")
+                .font(.geist(11, weight: .semiBold))
                 .foregroundStyle(Color.dsFg4)
-                .tracking(1.2)
+                .tracking(2.0)
+            Text("REGISTRÁ TU PRIMERA\nSESIÓN PARA GENERAR\nMÉTRICAS.")
+                .font(.geist(28, weight: .bold))
+                .foregroundStyle(Color.dsFg4)
+                .tracking(0.3)
+                .lineSpacing(2)
+            Rectangle()
+                .fill(Color.dsHairline)
+                .frame(height: 1)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 20)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
 
     private var grouped: [(label: String, sessions: [WorkoutSession])] {
