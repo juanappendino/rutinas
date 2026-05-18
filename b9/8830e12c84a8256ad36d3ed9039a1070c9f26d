@@ -1,0 +1,39 @@
+rutinas/SessionCompleteView.swift
+  s_ec4739e49ce67b::t_4b7203afd9618c 171
+  s_ec4739e49ce67b::t_7a840e123343fb 112
+  s_ec4739e49ce67b::t_884179353a3e3d 133
+  s_ec4739e49ce67b::t_b6e6be43594ea1 39-46
+  s_ec4739e49ce67b::t_3a3bc8941e891f 34
+  s_ec4739e49ce67b::t_8fd30979256542 21
+rutinas/DesignSystem.swift
+  s_ec4739e49ce67b::t_46fbe9b4a8a9db 351-473,475-477,479-484,486-489,491-539
+  s_ec4739e49ce67b::t_c470a0f34f8564 474,478,485,490
+rutinas/RoutinesView.swift
+  s_ec4739e49ce67b::t_9b39df83daec44 24
+rutinas/HistoryView.swift
+  s_ec4739e49ce67b::t_b7869e9034b369 30
+  s_ec4739e49ce67b::t_77780cfdc45287 147-150
+  s_ec4739e49ce67b::t_927c4644e62a02 13
+rutinas/TodayView.swift
+  s_ec4739e49ce67b::t_4cbea1353c2b1e 536-538,543,570-574
+  s_ec4739e49ce67b::t_c57f19baae6dfc 382-384,386-388
+  s_ec4739e49ce67b::t_b8feffbc966d13 415-417
+  s_ec4739e49ce67b::t_f0fdcb165d95a8 472-475
+  s_ec4739e49ce67b::t_6867487531f3ba 385
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "b98830e12c84a8256ad36d3ed9039a1070c9f26d",
+  "prompts": {},
+  "sessions": {
+    "s_ec4739e49ce67b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "122fac33-2db8-4f6b-beb8-9f797b133af8",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "jappen <juanappendino@gmail.com>"
+    }
+  }
+}
