@@ -35,9 +35,13 @@ class WorkoutManager {
     var exerciseCatalog: [ExerciseTemplate] = []
     var muscleGroupTemplates: [MuscleGroupTemplate] = []
 
+    // MARK: — Watch bridge (retención fuerte para que no se destruya)
+    var _wcBridge: WCBridge?
+
     init() {
         print("🔵 WorkoutManager init comenzando...")
         loadAsync()
+        activateWCSession()
         print("🔵 WorkoutManager init completado (carga en background)")
     }
 
@@ -97,6 +101,7 @@ class WorkoutManager {
         activeSession = session
         manualOverrideID = nil
         saveSession()
+        pushStateToWatch()
     }
 
     func toggleExercise(_ exercise: Exercise) {
@@ -122,9 +127,12 @@ class WorkoutManager {
     }
 
     func setType(for exercise: Exercise) -> SetType {
-        guard let s = activeSession,
-              let raw = s.setTypeLog[exercise.id.uuidString] else { return .weightReps }
-        return SetType(rawValue: raw) ?? .weightReps
+        if let s = activeSession,
+           let raw = s.setTypeLog[exercise.id.uuidString],
+           let type = SetType(rawValue: raw) {
+            return type
+        }
+        return SetType.inferred(from: exercise.reps)
     }
 
     func logSet(_ index: Int, for exercise: Exercise, type: SetType, weight: Double?, reps: Int?, time: Double?, speed: Double? = nil) {
@@ -245,6 +253,7 @@ class WorkoutManager {
         activeSession = nil
         saveHistory()
         saveSession()
+        pushStateToWatch()
         return summary
     }
 
@@ -326,6 +335,7 @@ class WorkoutManager {
     func cancelWorkout() {
         activeSession = nil
         saveSession()
+        pushStateToWatch()
     }
 
     func completedSetIndices(for exercise: Exercise) -> Set<Int> {
@@ -451,6 +461,7 @@ class WorkoutManager {
                 }
 
                 print("🔵 Datos cargados en background. Rutinas: \(self.routines.count)")
+                self.pushStateToWatch()
             }
         }
     }

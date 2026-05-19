@@ -24,7 +24,11 @@ struct ContentView: View {
                     .preferredColorScheme(.dark)
                     .tint(.dsNaranja)
                     .onChange(of: scenePhase) { _, phase in
-                        if phase == .active { restTimer.syncWithCurrentTime(); stopwatch.syncWithCurrentTime() }
+                        if phase == .active {
+                            restTimer.syncWithCurrentTime()
+                            stopwatch.syncWithCurrentTime()
+                            manager.pushStateToWatch()
+                        }
                     }
             }
         }

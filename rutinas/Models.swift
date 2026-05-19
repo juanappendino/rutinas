@@ -10,6 +10,16 @@ enum SetType: String, Codable {
         case .time:       return "Tiempo"
         }
     }
+
+    /// Infiere el tipo a partir del campo reps del ejercicio (ej. "10 min", "30 seg", "45s").
+    /// Usado cuando todavía no hay setTypeLog para ese ejercicio.
+    static func inferred(from reps: String) -> SetType {
+        let lower = reps.lowercased()
+        if lower.contains("min") || lower.contains("seg") || lower.hasSuffix("s") {
+            return .time
+        }
+        return .weightReps
+    }
 }
 
 struct Exercise: Codable, Identifiable, Hashable {

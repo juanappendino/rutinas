@@ -6,6 +6,12 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		AA000001000000000000001A /* WatchConnectivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA000001000000000000001B /* WatchConnectivity.framework */; };
+		AA000001000000000000001C /* WatchConnectivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA000001000000000000001B /* WatchConnectivity.framework */; };
+		E85E4AD82FBBF03800D53A0F /* rut1nas watch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = E85E4AB82FBBF03700D53A0F /* rut1nas watch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		E85BC7BB2F9F056B00D1E5F5 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -21,17 +27,69 @@
 			remoteGlobalIDString = E85BC7AC2F9F056800D1E5F5;
 			remoteInfo = rutinas;
 		};
+		E85E4AC52FBBF03800D53A0F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E85BC7A52F9F056800D1E5F5 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E85E4AB72FBBF03700D53A0F;
+			remoteInfo = "rut1nas watch Watch App";
+		};
+		E85E4ACF2FBBF03800D53A0F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E85BC7A52F9F056800D1E5F5 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E85E4AB72FBBF03700D53A0F;
+			remoteInfo = "rut1nas watch Watch App";
+		};
+		E85E4AD62FBBF03800D53A0F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E85BC7A52F9F056800D1E5F5 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E85E4AB72FBBF03700D53A0F;
+			remoteInfo = "rut1nas watch Watch App";
+		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		E85E4AD92FBBF03800D53A0F /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				E85E4AD82FBBF03800D53A0F /* rut1nas watch Watch App.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		AA000001000000000000001B /* WatchConnectivity.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WatchConnectivity.framework; path = System/Library/Frameworks/WatchConnectivity.framework; sourceTree = SDKROOT; };
 		E85BC7AD2F9F056800D1E5F5 /* rut1nas.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = rut1nas.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E85BC7BA2F9F056B00D1E5F5 /* rutinasTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = rutinasTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E85BC7C42F9F056B00D1E5F5 /* rutinasUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = rutinasUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E85E4AB82FBBF03700D53A0F /* rut1nas watch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "rut1nas watch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		E85E4AC42FBBF03800D53A0F /* rut1nas watch Watch AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "rut1nas watch Watch AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		E85E4ACE2FBBF03800D53A0F /* rut1nas watch Watch AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "rut1nas watch Watch AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		E85E4AEA2FBBF33D00D53A0F /* Exceptions for "rutinas" folder in "rut1nas watch Watch App" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Models.swift,
+			);
+			target = E85E4AB72FBBF03700D53A0F /* rut1nas watch Watch App */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		E85BC7AF2F9F056800D1E5F5 /* rutinas */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				E85E4AEA2FBBF33D00D53A0F /* Exceptions for "rutinas" folder in "rut1nas watch Watch App" target */,
+			);
 			path = rutinas;
 			sourceTree = "<group>";
 		};
@@ -45,6 +103,21 @@
 			path = rutinasUITests;
 			sourceTree = "<group>";
 		};
+		E85E4AB92FBBF03700D53A0F /* rut1nas watch Watch App */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "rut1nas watch Watch App";
+			sourceTree = "<group>";
+		};
+		E85E4AC72FBBF03800D53A0F /* rut1nas watch Watch AppTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "rut1nas watch Watch AppTests";
+			sourceTree = "<group>";
+		};
+		E85E4AD12FBBF03800D53A0F /* rut1nas watch Watch AppUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "rut1nas watch Watch AppUITests";
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -52,6 +125,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA000001000000000000001A /* WatchConnectivity.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -69,16 +143,50 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E85E4AB52FBBF03700D53A0F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA000001000000000000001C /* WatchConnectivity.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E85E4AC12FBBF03800D53A0F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E85E4ACB2FBBF03800D53A0F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		AA000001000000000000001D /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				AA000001000000000000001B /* WatchConnectivity.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		E85BC7A42F9F056800D1E5F5 = {
 			isa = PBXGroup;
 			children = (
 				E85BC7AF2F9F056800D1E5F5 /* rutinas */,
 				E85BC7BD2F9F056B00D1E5F5 /* rutinasTests */,
 				E85BC7C72F9F056B00D1E5F5 /* rutinasUITests */,
+				E85E4AB92FBBF03700D53A0F /* rut1nas watch Watch App */,
+				E85E4AC72FBBF03800D53A0F /* rut1nas watch Watch AppTests */,
+				E85E4AD12FBBF03800D53A0F /* rut1nas watch Watch AppUITests */,
 				E85BC7AE2F9F056800D1E5F5 /* Products */,
+				AA000001000000000000001D /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -88,6 +196,9 @@
 				E85BC7AD2F9F056800D1E5F5 /* rut1nas.app */,
 				E85BC7BA2F9F056B00D1E5F5 /* rutinasTests.xctest */,
 				E85BC7C42F9F056B00D1E5F5 /* rutinasUITests.xctest */,
+				E85E4AB82FBBF03700D53A0F /* rut1nas watch Watch App.app */,
+				E85E4AC42FBBF03800D53A0F /* rut1nas watch Watch AppTests.xctest */,
+				E85E4ACE2FBBF03800D53A0F /* rut1nas watch Watch AppUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -102,10 +213,12 @@
 				E85BC7A92F9F056800D1E5F5 /* Sources */,
 				E85BC7AA2F9F056800D1E5F5 /* Frameworks */,
 				E85BC7AB2F9F056800D1E5F5 /* Resources */,
+				E85E4AD92FBBF03800D53A0F /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				E85E4AD72FBBF03800D53A0F /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				E85BC7AF2F9F056800D1E5F5 /* rutinas */,
@@ -163,6 +276,74 @@
 			productReference = E85BC7C42F9F056B00D1E5F5 /* rutinasUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		E85E4AB72FBBF03700D53A0F /* rut1nas watch Watch App */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E85E4AE02FBBF03800D53A0F /* Build configuration list for PBXNativeTarget "rut1nas watch Watch App" */;
+			buildPhases = (
+				E85E4AB42FBBF03700D53A0F /* Sources */,
+				E85E4AB52FBBF03700D53A0F /* Frameworks */,
+				E85E4AB62FBBF03700D53A0F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				E85E4AB92FBBF03700D53A0F /* rut1nas watch Watch App */,
+			);
+			name = "rut1nas watch Watch App";
+			packageProductDependencies = (
+			);
+			productName = "rut1nas watch Watch App";
+			productReference = E85E4AB82FBBF03700D53A0F /* rut1nas watch Watch App.app */;
+			productType = "com.apple.product-type.application";
+		};
+		E85E4AC32FBBF03800D53A0F /* rut1nas watch Watch AppTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E85E4AE12FBBF03800D53A0F /* Build configuration list for PBXNativeTarget "rut1nas watch Watch AppTests" */;
+			buildPhases = (
+				E85E4AC02FBBF03800D53A0F /* Sources */,
+				E85E4AC12FBBF03800D53A0F /* Frameworks */,
+				E85E4AC22FBBF03800D53A0F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E85E4AC62FBBF03800D53A0F /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				E85E4AC72FBBF03800D53A0F /* rut1nas watch Watch AppTests */,
+			);
+			name = "rut1nas watch Watch AppTests";
+			packageProductDependencies = (
+			);
+			productName = "rut1nas watch Watch AppTests";
+			productReference = E85E4AC42FBBF03800D53A0F /* rut1nas watch Watch AppTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		E85E4ACD2FBBF03800D53A0F /* rut1nas watch Watch AppUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E85E4AE22FBBF03800D53A0F /* Build configuration list for PBXNativeTarget "rut1nas watch Watch AppUITests" */;
+			buildPhases = (
+				E85E4ACA2FBBF03800D53A0F /* Sources */,
+				E85E4ACB2FBBF03800D53A0F /* Frameworks */,
+				E85E4ACC2FBBF03800D53A0F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E85E4AD02FBBF03800D53A0F /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				E85E4AD12FBBF03800D53A0F /* rut1nas watch Watch AppUITests */,
+			);
+			name = "rut1nas watch Watch AppUITests";
+			packageProductDependencies = (
+			);
+			productName = "rut1nas watch Watch AppUITests";
+			productReference = E85E4ACE2FBBF03800D53A0F /* rut1nas watch Watch AppUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -184,6 +365,17 @@
 						CreatedOnToolsVersion = 26.3;
 						TestTargetID = E85BC7AC2F9F056800D1E5F5;
 					};
+					E85E4AB72FBBF03700D53A0F = {
+						CreatedOnToolsVersion = 26.3;
+					};
+					E85E4AC32FBBF03800D53A0F = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = E85E4AB72FBBF03700D53A0F;
+					};
+					E85E4ACD2FBBF03800D53A0F = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = E85E4AB72FBBF03700D53A0F;
+					};
 				};
 			};
 			buildConfigurationList = E85BC7A82F9F056800D1E5F5 /* Build configuration list for PBXProject "rutinas" */;
@@ -203,6 +395,9 @@
 				E85BC7AC2F9F056800D1E5F5 /* rut1nas */,
 				E85BC7B92F9F056B00D1E5F5 /* rutinasTests */,
 				E85BC7C32F9F056B00D1E5F5 /* rutinasUITests */,
+				E85E4AB72FBBF03700D53A0F /* rut1nas watch Watch App */,
+				E85E4AC32FBBF03800D53A0F /* rut1nas watch Watch AppTests */,
+				E85E4ACD2FBBF03800D53A0F /* rut1nas watch Watch AppUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -223,6 +418,27 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		E85BC7C22F9F056B00D1E5F5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E85E4AB62FBBF03700D53A0F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E85E4AC22FBBF03800D53A0F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E85E4ACC2FBBF03800D53A0F /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -253,6 +469,27 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E85E4AB42FBBF03700D53A0F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E85E4AC02FBBF03800D53A0F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E85E4ACA2FBBF03800D53A0F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -265,6 +502,21 @@
 			isa = PBXTargetDependency;
 			target = E85BC7AC2F9F056800D1E5F5 /* rut1nas */;
 			targetProxy = E85BC7C52F9F056B00D1E5F5 /* PBXContainerItemProxy */;
+		};
+		E85E4AC62FBBF03800D53A0F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E85E4AB72FBBF03700D53A0F /* rut1nas watch Watch App */;
+			targetProxy = E85E4AC52FBBF03800D53A0F /* PBXContainerItemProxy */;
+		};
+		E85E4AD02FBBF03800D53A0F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E85E4AB72FBBF03700D53A0F /* rut1nas watch Watch App */;
+			targetProxy = E85E4ACF2FBBF03800D53A0F /* PBXContainerItemProxy */;
+		};
+		E85E4AD72FBBF03800D53A0F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E85E4AB72FBBF03700D53A0F /* rut1nas watch Watch App */;
+			targetProxy = E85E4AD62FBBF03800D53A0F /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -402,6 +654,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = rut1nas;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -410,7 +663,6 @@
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
-				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
@@ -449,6 +701,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = rut1nas;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -457,7 +710,6 @@
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
-				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
@@ -582,6 +834,167 @@
 			};
 			name = Release;
 		};
+		E85E4ADA2FBBF03800D53A0F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = X9784VUK55;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = rut1nas;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.jappen.rut1nas;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jappen.rut1nas.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Debug;
+		};
+		E85E4ADB2FBBF03800D53A0F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = X9784VUK55;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = rut1nas;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.jappen.rut1nas;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jappen.rut1nas.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Release;
+		};
+		E85E4ADC2FBBF03800D53A0F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = X9784VUK55;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "jappen.rut1nas-watch-Watch-AppTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/rut1nas watch Watch App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/rut1nas watch Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Debug;
+		};
+		E85E4ADD2FBBF03800D53A0F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = X9784VUK55;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "jappen.rut1nas-watch-Watch-AppTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/rut1nas watch Watch App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/rut1nas watch Watch App";
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Release;
+		};
+		E85E4ADE2FBBF03800D53A0F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = X9784VUK55;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "jappen.rut1nas-watch-Watch-AppUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_TARGET_NAME = "rut1nas watch Watch App";
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Debug;
+		};
+		E85E4ADF2FBBF03800D53A0F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = X9784VUK55;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "jappen.rut1nas-watch-Watch-AppUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_TARGET_NAME = "rut1nas watch Watch App";
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -617,6 +1030,33 @@
 			buildConfigurations = (
 				E85BC7D52F9F056B00D1E5F5 /* Debug */,
 				E85BC7D62F9F056B00D1E5F5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E85E4AE02FBBF03800D53A0F /* Build configuration list for PBXNativeTarget "rut1nas watch Watch App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E85E4ADA2FBBF03800D53A0F /* Debug */,
+				E85E4ADB2FBBF03800D53A0F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E85E4AE12FBBF03800D53A0F /* Build configuration list for PBXNativeTarget "rut1nas watch Watch AppTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E85E4ADC2FBBF03800D53A0F /* Debug */,
+				E85E4ADD2FBBF03800D53A0F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E85E4AE22FBBF03800D53A0F /* Build configuration list for PBXNativeTarget "rut1nas watch Watch AppUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E85E4ADE2FBBF03800D53A0F /* Debug */,
+				E85E4ADF2FBBF03800D53A0F /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

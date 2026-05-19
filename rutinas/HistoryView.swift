@@ -3,6 +3,7 @@ import SwiftUI
 struct HistoryView: View {
     @Environment(WorkoutManager.self) var manager
     @State private var tab: Int = 0
+    @State private var ejerciciosQuery: String = ""
 
     var body: some View {
         NavigationStack {
@@ -215,24 +216,68 @@ struct HistoryView: View {
     // MARK: — Tab 1: Ejercicios
 
     @ViewBuilder private var ejerciciosContent: some View {
-        let exercises = allUniqueExercises
-        if exercises.isEmpty {
+        let groups = groupedExercises
+        if groups.isEmpty && ejerciciosQuery.isEmpty {
             emptyState(label: "SIN RUTINAS")
         } else {
             ScrollView {
                 VStack(spacing: 0) {
-                    ForEach(Array(exercises.enumerated()), id: \.element.id) { i, exercise in
-                        if i > 0 { Rectangle().fill(Color.dsHairline).frame(height: 1) }
-                        NavigationLink {
-                            ExerciseProgressView(exercise: exercise)
-                        } label: {
-                            exerciseRow(exercise)
+                    // Campo de búsqueda
+                    HStack(spacing: 8) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(Color.dsFg3)
+                        TextField("Buscar ejercicio…", text: $ejerciciosQuery)
+                            .font(.geist(14, weight: .regular))
+                            .foregroundStyle(Color.dsFg1)
+                            .tint(Color.dsNaranja)
+                        if !ejerciciosQuery.isEmpty {
+                            Button { ejerciciosQuery = "" } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(Color.dsFg4)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background(Color.dsCard)
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.dsHairline, lineWidth: 1))
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 4)
+
+                    if groups.isEmpty {
+                        Text("Sin resultados")
+                            .font(.geist(13, weight: .regular))
+                            .foregroundStyle(Color.dsFg4)
+                            .padding(.top, 40)
+                            .frame(maxWidth: .infinity)
+                    } else {
+                        ForEach(Array(groups.enumerated()), id: \.offset) { gi, group in
+                            VStack(alignment: .leading, spacing: 0) {
+                                SectionRule(label: group.name)
+                                    .padding(.bottom, 4)
+                                VStack(spacing: 0) {
+                                    ForEach(Array(group.exercises.enumerated()), id: \.element.id) { i, exercise in
+                                        if i > 0 { Rectangle().fill(Color.dsHairline).frame(height: 1) }
+                                        NavigationLink {
+                                            ExerciseProgressView(exercise: exercise)
+                                        } label: {
+                                            exerciseRow(exercise)
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.top, gi == 0 ? 8 : 24)
+                        }
+                    }
+
+                    Spacer().frame(height: 60)
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 60)
             }
         }
     }
@@ -275,12 +320,30 @@ struct HistoryView: View {
         }
     }
 
-    private var allUniqueExercises: [Exercise] {
-        var seen = Set<UUID>()
-        return manager.routines
-            .flatMap { $0.muscleGroups }
-            .flatMap(\.exercises)
-            .filter { seen.insert($0.id).inserted }
+    /// Ejercicios agrupados por músculo, filtrados por búsqueda, sin duplicados por nombre.
+    private var groupedExercises: [(name: String, exercises: [Exercise])] {
+        let query = ejerciciosQuery.trimmingCharacters(in: .whitespaces).lowercased()
+        var seenNames = Set<String>()
+
+        // Construir grupos en el orden en que aparecen en las rutinas
+        var groupMap: [(name: String, exercises: [Exercise])] = []
+
+        for routine in manager.routines {
+            for group in routine.muscleGroups {
+                for exercise in group.exercises {
+                    let key = exercise.name.lowercased()
+                    guard seenNames.insert(key).inserted else { continue }
+                    guard query.isEmpty || key.contains(query) else { continue }
+
+                    if let idx = groupMap.firstIndex(where: { $0.name == group.name }) {
+                        groupMap[idx].exercises.append(exercise)
+                    } else {
+                        groupMap.append((group.name, [exercise]))
+                    }
+                }
+            }
+        }
+        return groupMap
     }
 
     // MARK: — Tab 2: Sesiones
@@ -334,19 +397,34 @@ struct HistoryView: View {
     private var grouped: [(label: String, sessions: [WorkoutSession])] {
         let calendar = Calendar.current
         let now = Date()
-        var thisWeek: [WorkoutSession] = []
-        var earlier: [WorkoutSession] = []
+        let currentYear = calendar.component(.year, from: now)
+
+        let df = DateFormatter()
+        df.locale = Locale(identifier: "es_AR")
+
+        // Agrupa por año+mes preservando el orden de manager.history (más reciente primero)
+        var buckets: [(year: Int, month: Int, sessions: [WorkoutSession])] = []
         for s in manager.history {
-            if let days = calendar.dateComponents([.day], from: s.date, to: now).day, days < 7 {
-                thisWeek.append(s)
+            let comps = calendar.dateComponents([.year, .month], from: s.date)
+            let y = comps.year ?? 0
+            let m = comps.month ?? 0
+            if let idx = buckets.firstIndex(where: { $0.year == y && $0.month == m }) {
+                buckets[idx].sessions.append(s)
             } else {
-                earlier.append(s)
+                buckets.append((y, m, [s]))
             }
         }
-        var result: [(String, [WorkoutSession])] = []
-        if !thisWeek.isEmpty { result.append(("ESTA SEMANA", thisWeek)) }
-        if !earlier.isEmpty  { result.append(("ANTERIORES", earlier)) }
-        return result
+
+        return buckets.map { bucket in
+            var comps = DateComponents()
+            comps.year = bucket.year
+            comps.month = bucket.month
+            comps.day = 1
+            let date = calendar.date(from: comps) ?? now
+            df.dateFormat = bucket.year == currentYear ? "MMMM" : "MMMM yyyy"
+            let label = df.string(from: date).uppercased()
+            return (label, bucket.sessions)
+        }
     }
 }
 

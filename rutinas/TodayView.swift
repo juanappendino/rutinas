@@ -1153,20 +1153,7 @@ struct ExerciseEditorialRow: View {
             impactLight.impactOccurred()
             return
         }
-        guard completedSets.isEmpty else {
-            // Series siguientes heredan valores y se confirman directo
-            let key = exercise.id.uuidString
-            let type = manager.setType(for: exercise)
-            let weight = manager.activeSession?.weightLog[key]
-            let reps = manager.activeSession?.repsLog[key]
-            let time = manager.activeSession?.timeLog[key]
-            let speed = manager.activeSession?.distanceLog[key]
-            let willComplete = completedSets.count + 1 == exercise.sets
-            manager.logSet(i, for: exercise, type: type, weight: weight, reps: reps, time: time, speed: speed)
-            restTimer.start(duration: willComplete ? restDuration : 25)
-            fireCompletion(setIndex: i, willComplete: willComplete)
-            return
-        }
+        // Series siguientes: abrir sheet pre-cargado con valores de la serie anterior
         pendingSetIndex = i
         showSetLog = true
     }
