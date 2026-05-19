@@ -1,0 +1,21 @@
+rutinas/StopwatchTimer.swift
+  s_fbae0f4831a135::t_bf61dcd94d3bf1 63-67
+rutinas/TodayView.swift
+  s_fbae0f4831a135::t_c8412c89d34426 449-451,455-471,474-476,478-516,518-531,533-556,558-619
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "a8de810e73b0479df819dd707df4e435a3f53964",
+  "prompts": {},
+  "sessions": {
+    "s_fbae0f4831a135": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "188f7806-3194-4c80-b3e7-a70f623b9b81",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "jappen <juanappendino@gmail.com>"
+    }
+  }
+}
