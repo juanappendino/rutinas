@@ -446,59 +446,180 @@ private struct SessionProgressBar: View {
     }
 }
 
-// MARK: — Compact stopwatch widget (header derecho durante sesión)
+// MARK: — Compact stopwatch widget — V4d Dual Mode
+// Cronómetro: play/pause/reset con botones.
+// Temporizador: tocar el dial → preroll 3-2-1 → 30s. Tocar mientras corre → +30s.
 
 private struct CompactStopwatchWidget: View {
     @Environment(StopwatchTimer.self) var stopwatch
+    @State private var prerollCount: Int? = nil
+
+    private var isTimer: Bool { stopwatch.mode == .countdown }
+    private var isPreroll: Bool { prerollCount != nil }
+    private var secondDeg: Double { Double(stopwatch.totalSeconds % 60) / 60.0 * 360 }
+
+    private var hintText: String {
+        if let n = prerollCount { return "empieza en \(n)…" }
+        if isTimer { return stopwatch.isRunning ? "+30s al tocar" : "listo" }
+        if stopwatch.isRunning { return "corriendo" }
+        if stopwatch.totalSeconds > 0 { return "pausado" }
+        return ""
+    }
+
+    private var displayedTime: String {
+        isPreroll ? "0:30" : stopwatch.displayTime
+    }
 
     var body: some View {
-        VStack(alignment: .trailing, spacing: 5) {
-            Text(stopwatch.mode == .countdown ? "TEMPORIZADOR" : "CRONÓMETRO")
-                .font(.geist(8, weight: .semiBold))
-                .foregroundStyle(stopwatch.mode == .countdown ? Color.dsNaranja : Color.dsFg4)
-                .tracking(1.4)
-                .animation(.easeInOut(duration: 0.2), value: stopwatch.mode == .countdown)
-            Text(stopwatch.displayTime)
-                .font(.system(size: 20, weight: .bold).monospacedDigit())
-                .foregroundStyle(stopwatch.isFinished ? Color.dsNaranja : Color.dsFg1)
-                .tracking(-0.5)
+        VStack(alignment: .trailing, spacing: 7) {
+
+            // — Eyebrow: fixedSize(horizontal:true) evita wrapping mid-word
             HStack(spacing: 5) {
-                // Chips 30s / 1m
-                ForEach([(30,"30S"),(60,"1M")], id: \.0) { sec, label in
-                    let isSelected = stopwatch.mode == .countdown && stopwatch.countdownTarget == sec
-                    DSChip(label: label, isSelected: isSelected) {
-                        stopwatch.startCountdown(seconds: sec)
+                Text(isTimer || isPreroll ? "TEMPORIZADOR" : "CRONÓMETRO")
+                    .font(.geist(9, weight: .semiBold))
+                    .foregroundStyle(isTimer || isPreroll ? Color.dsNaranja : Color.dsFg3)
+                    .tracking(0.8)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+                if !hintText.isEmpty {
+                    Text(hintText)
+                        .font(.geist(9, weight: .regular))
+                        .foregroundStyle(isTimer || isPreroll ? Color.dsNaranja.opacity(0.55) : Color.dsFg4)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
+                }
+            }
+            .animation(.easeInOut(duration: 0.2), value: isTimer || isPreroll)
+
+            // — Fila principal: dial · tiempo · botones
+            HStack(spacing: 10) {
+                dialFace
+                    .frame(width: 44, height: 44)
+                    .contentShape(Circle())
+                    .onTapGesture { handleDialTap() }
+
+                Text(displayedTime)
+                    .font(.custom("IBMPlexMono-Bold", size: 22))
+                    .foregroundStyle(isTimer || isPreroll ? Color.dsNaranja : Color.dsFg1)
+                    .tracking(-0.8)
+                    .frame(minWidth: 50, alignment: .trailing)
+                    .animation(.easeInOut(duration: 0.15), value: isTimer || isPreroll)
+
+                HStack(spacing: 4) {
+                    Button { handleCancelOrReset() } label: {
+                        Image(systemName: isTimer || isPreroll ? "xmark" : "arrow.counterclockwise")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(Color.dsFg2)
+                            .frame(width: 24, height: 24)
+                            .background(Color.dsSurface)
+                            .clipShape(Circle())
+                            .overlay(Circle().strokeBorder(Color.dsHairline, lineWidth: 1))
                     }
+                    .buttonStyle(.plain)
+                    .animation(.easeInOut(duration: 0.15), value: isTimer || isPreroll)
+
+                    Button { stopwatch.toggle() } label: {
+                        Image(systemName: stopwatch.isRunning ? "pause.fill" : "play.fill")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(Color.dsOnPrimary)
+                            .frame(width: 24, height: 24)
+                            .background(isTimer || isPreroll ? Color.dsNaranja.opacity(0.3) : Color.dsNaranja)
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isTimer || isPreroll)
+                    .animation(.easeInOut(duration: 0.14), value: stopwatch.isRunning)
                 }
-                // Reset / cancel
-                Button {
-                    if stopwatch.mode == .countdown { stopwatch.switchToStopwatch() }
-                    else { stopwatch.reset() }
-                } label: {
-                    Image(systemName: stopwatch.mode == .countdown ? "xmark" : "arrow.counterclockwise")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(Color.dsFg2)
-                        .frame(width: 28, height: 28)
-                        .background(Color.dsSurface)
-                        .clipShape(RoundedRectangle(cornerRadius: 3))
-                        .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color.dsHairline, lineWidth: 1))
-                }
-                .buttonStyle(.plain)
-                // Play / pause
-                Button { stopwatch.toggle() } label: {
-                    Image(systemName: stopwatch.isRunning ? "pause.fill" : "play.fill")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(Color.dsNaranja)
-                        .frame(width: 28, height: 28)
-                        .background(Color.dsSurface)
-                        .clipShape(RoundedRectangle(cornerRadius: 3))
-                        .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color.dsHairline, lineWidth: 1))
-                }
-                .buttonStyle(.plain)
-                .animation(.easeInOut(duration: 0.14), value: stopwatch.isRunning)
             }
         }
         .padding(.top, 4)
+    }
+
+    @ViewBuilder private var dialFace: some View {
+        ZStack {
+            Canvas { ctx, sz in
+                let r = min(sz.width, sz.height) / 2
+                let cx = sz.width / 2
+                let cy = sz.height / 2
+                for i in 0..<60 {
+                    let major = i % 5 == 0
+                    let θ = Double(i) * 6 * .pi / 180
+                    let outer = r - 2
+                    let inner = CGFloat(major ? r - 8 : r - 5)
+                    var path = Path()
+                    path.move(to: CGPoint(x: cx + CGFloat(sin(θ)) * outer,
+                                         y: cy - CGFloat(cos(θ)) * outer))
+                    path.addLine(to: CGPoint(x: cx + CGFloat(sin(θ)) * inner,
+                                            y: cy - CGFloat(cos(θ)) * inner))
+                    ctx.stroke(path,
+                               with: .color(major ? Color.dsFg3 : Color.dsFg4.opacity(0.45)),
+                               style: StrokeStyle(lineWidth: major ? 1.5 : 0.8, lineCap: .round))
+                }
+            }
+            Circle().strokeBorder(Color.dsHairline, lineWidth: 1)
+            if let n = prerollCount {
+                Text("\(n)")
+                    .font(.custom("IBMPlexMono-Bold", size: 20))
+                    .foregroundStyle(Color.dsNaranja)
+                    .id(n)
+                    .transition(.scale(scale: 1.4).combined(with: .opacity))
+            } else if isTimer {
+                Circle()
+                    .trim(from: 0, to: CGFloat(1.0 - stopwatch.progress))
+                    .stroke(Color.dsNaranja, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .animation(.linear(duration: 1), value: stopwatch.progress)
+            } else {
+                Capsule()
+                    .fill(Color.dsNaranja)
+                    .frame(width: 1.5, height: 14)
+                    .offset(y: -7)
+                    .rotationEffect(.degrees(secondDeg))
+                    .animation(.linear(duration: 1), value: secondDeg)
+            }
+            Circle().fill(Color.dsNaranja).frame(width: 4, height: 4)
+        }
+    }
+
+    private func handleDialTap() {
+        if isTimer && stopwatch.isRunning {
+            stopwatch.addCountdown(seconds: 30)
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            return
+        }
+        guard !isPreroll else { return }
+        startPreroll()
+    }
+
+    private func handleCancelOrReset() {
+        if isPreroll {
+            withAnimation(.easeInOut(duration: 0.2)) { prerollCount = nil }
+        } else if isTimer {
+            stopwatch.switchToStopwatch()
+        } else {
+            stopwatch.reset()
+        }
+    }
+
+    private func startPreroll() {
+        withAnimation(.easeInOut(duration: 0.2)) { prerollCount = 3 }
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            guard prerollCount != nil else { return }
+            withAnimation(.easeInOut(duration: 0.2)) { prerollCount = 2 }
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                guard prerollCount != nil else { return }
+                withAnimation(.easeInOut(duration: 0.2)) { prerollCount = 1 }
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                    guard prerollCount != nil else { return }
+                    withAnimation(.easeInOut(duration: 0.2)) { prerollCount = nil }
+                    stopwatch.startCountdown(seconds: 30)
+                    UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                }
+            }
+        }
     }
 }
 

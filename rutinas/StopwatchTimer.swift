@@ -60,6 +60,11 @@ class StopwatchTimer {
         mode = .stopwatch
     }
 
+    func addCountdown(seconds: Int) {
+        guard mode == .countdown else { return }
+        countdownTarget += seconds
+    }
+
     func syncWithCurrentTime() {
         guard isRunning, let start = resumeDate else { return }
         let elapsed = Int(Date().timeIntervalSince(start))
