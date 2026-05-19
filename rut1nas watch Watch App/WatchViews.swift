@@ -79,8 +79,8 @@ struct WatchIdleView: View {
                 // Sin rutina cargada aún
                 VStack(spacing: 8) {
                     Image(systemName: "iphone.and.arrow.right.inward")
-                        .font(.system(size: 24))
-                        .foregroundStyle(Color.wFg4)
+                        .font(.system(size: 28))
+                        .foregroundStyle(Color.wFg3)
                     Text("Abrí la app\nen el iPhone")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(Color.wFg3)
@@ -119,9 +119,8 @@ struct WatchExercisesView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
-                // Header: ring + contadores
+                // Header compacto: ring + series
                 HStack(spacing: 10) {
-                    // Ring de progreso
                     ZStack {
                         Circle()
                             .stroke(Color.wSurface, lineWidth: 3)
@@ -131,21 +130,16 @@ struct WatchExercisesView: View {
                             .rotationEffect(.degrees(-90))
                             .animation(.easeInOut(duration: 0.2), value: manager.progress)
                     }
-                    .frame(width: 36, height: 36)
+                    .frame(width: 28, height: 28)
                     .overlay {
                         Text("\(manager.doneSets)")
-                            .font(.system(size: 12, weight: .bold, design: .monospaced))
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
                             .foregroundStyle(Color.wFg1)
                     }
 
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(manager.routine.map { "DÍA \($0.dayNumber)\($0.variant)" } ?? "—")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(Color.wFg1)
-                        Text("\(manager.doneSets)/\(manager.totalSets) series")
-                            .font(.system(size: 10, weight: .regular, design: .monospaced))
-                            .foregroundStyle(Color.wFg3)
-                    }
+                    Text("\(manager.doneSets)/\(manager.totalSets) series")
+                        .font(.system(size: 12, weight: .regular, design: .monospaced))
+                        .foregroundStyle(Color.wFg3)
                     Spacer()
                 }
                 .padding(.horizontal, 8)
@@ -197,8 +191,11 @@ struct WatchExercisesView: View {
                 .padding(.bottom, 16)
             }
         }
-        .confirmationDialog("¿Finalizar?", isPresented: $showFinish) {
-            Button("Finalizar", role: .destructive) { manager.finishSession() }
+        .confirmationDialog(
+            "¿Finalizar entrenamiento? · \(manager.doneSets)/\(manager.totalSets) series",
+            isPresented: $showFinish
+        ) {
+            Button("Finalizar") { manager.finishSession() }
             Button("Cancelar", role: .cancel) {}
         }
     }
@@ -220,24 +217,28 @@ struct WatchExerciseRow: View {
             if !allDone { showSetInput = true }
         } label: {
             HStack(spacing: 8) {
-                // Dots de series
-                HStack(spacing: 3) {
+                // Dots de series — 6×6, gap 2
+                HStack(spacing: 2) {
                     ForEach(0..<exercise.sets, id: \.self) { i in
                         Circle()
                             .fill(completed.contains(i) ? Color.wNaranja : Color.wSurface)
-                            .frame(width: 7, height: 7)
+                            .frame(width: 6, height: 6)
                             .overlay(Circle().strokeBorder(
                                 completed.contains(i) ? Color.clear : Color.wHairline, lineWidth: 1
                             ))
                     }
                 }
-                .frame(width: CGFloat(exercise.sets) * 10, alignment: .leading)
+                .frame(width: CGFloat(exercise.sets) * 8, alignment: .leading)
 
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(exercise.name.uppercased())
-                        .font(.system(size: 11, weight: allDone ? .regular : .semibold))
-                        .foregroundStyle(allDone ? Color.wFg4 : Color.wFg1)
-                        .lineLimit(1)
+                Text(exercise.name.uppercased())
+                    .font(.system(size: 12, weight: allDone ? .regular : .semibold))
+                    .foregroundStyle(allDone ? Color.wFg4 : Color.wFg1)
+                    .lineLimit(1)
+
+                Spacer()
+
+                // Valor alineado a la derecha
+                if !allDone {
                     if manager.exerciseSetType(for: exercise) == .time {
                         if let t = manager.sessionTime(for: exercise) {
                             Text(t < 60 ? "\(Int(t))s" : "\(Int(t)/60):\(String(format: "%02d", Int(t)%60))")
@@ -250,8 +251,6 @@ struct WatchExerciseRow: View {
                             .foregroundStyle(Color.wNaranja)
                     }
                 }
-
-                Spacer()
 
                 if allDone {
                     Image(systemName: "checkmark")
@@ -358,7 +357,7 @@ struct WatchSetInputView: View {
 
                         HStack(alignment: .firstTextBaseline, spacing: 3) {
                             Text(timeDisplay(seconds))
-                                .font(.system(size: 28, weight: .bold, design: .monospaced))
+                                .font(.system(size: 36, weight: .bold, design: .monospaced))
                                 .foregroundStyle(Color.wFg1)
                             Text("s")
                                 .font(.system(size: 13, weight: .medium))
@@ -381,21 +380,23 @@ struct WatchSetInputView: View {
                                     .font(.system(size: 12, weight: .semibold))
                                     .foregroundStyle(Color.wFg2)
                                     .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 6)
+                                    .padding(.vertical, 10)
                                     .background(Color.wSurface)
                                     .clipShape(RoundedRectangle(cornerRadius: 6))
                             }
                             .buttonStyle(.plain)
+                            .accessibilityLabel("Restar 15 segundos")
                             Button { seconds = min(600, seconds + 15) } label: {
                                 Text("+15s")
                                     .font(.system(size: 12, weight: .semibold))
                                     .foregroundStyle(Color.wFg2)
                                     .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 6)
+                                    .padding(.vertical, 10)
                                     .background(Color.wSurface)
                                     .clipShape(RoundedRectangle(cornerRadius: 6))
                             }
                             .buttonStyle(.plain)
+                            .accessibilityLabel("Sumar 15 segundos")
                         }
                     }
                     .padding(.vertical, 8)
@@ -414,7 +415,7 @@ struct WatchSetInputView: View {
                             .tracking(1.5)
                         HStack(alignment: .firstTextBaseline, spacing: 3) {
                             Text(weight > 0 ? String(format: "%.1f", weight) : "—")
-                                .font(.system(size: 28, weight: .bold, design: .monospaced))
+                                .font(.system(size: 36, weight: .bold, design: .monospaced))
                                 .foregroundStyle(weight > 0 ? Color.wFg1 : Color.wFg4)
                             Text("kg")
                                 .font(.system(size: 13, weight: .medium))
@@ -437,21 +438,23 @@ struct WatchSetInputView: View {
                                     .font(.system(size: 12, weight: .semibold))
                                     .foregroundStyle(Color.wFg2)
                                     .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 6)
+                                    .padding(.vertical, 10)
                                     .background(Color.wSurface)
                                     .clipShape(RoundedRectangle(cornerRadius: 6))
                             }
                             .buttonStyle(.plain)
+                            .accessibilityLabel("Restar 2.5 kg")
                             Button { weight += 2.5 } label: {
                                 Text("+2.5")
                                     .font(.system(size: 12, weight: .semibold))
                                     .foregroundStyle(Color.wFg2)
                                     .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 6)
+                                    .padding(.vertical, 10)
                                     .background(Color.wSurface)
                                     .clipShape(RoundedRectangle(cornerRadius: 6))
                             }
                             .buttonStyle(.plain)
+                            .accessibilityLabel("Sumar 2.5 kg")
                         }
                     }
                     .padding(.vertical, 8)
@@ -600,17 +603,20 @@ struct WatchStopwatchView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 8) {
-                // Cronómetro
+                // Cronómetro — se apaga cuando el temporizador corre
                 VStack(spacing: 2) {
                     Text("CRONÓMETRO")
                         .font(.system(size: 9, weight: .semibold))
                         .foregroundStyle(Color.wFg4)
                         .tracking(1.5)
                     Text(manager.stopwatchDisplay)
-                        .font(.system(size: 32, weight: .bold, design: .monospaced))
+                        .font(.system(size: countdownRunning ? 18 : 32, weight: .bold, design: .monospaced))
                         .foregroundStyle(Color.wFg1)
                         .tracking(-1)
+                        .animation(.easeInOut(duration: 0.2), value: countdownRunning)
                 }
+                .opacity(countdownRunning ? 0.45 : 1.0)
+                .animation(.easeInOut(duration: 0.2), value: countdownRunning)
                 .padding(.top, 4)
 
                 // Temporizador de cuenta regresiva
@@ -659,6 +665,7 @@ struct WatchStopwatchView: View {
                                         .clipShape(RoundedRectangle(cornerRadius: 6))
                                 }
                                 .buttonStyle(.plain)
+                                .accessibilityLabel("Temporizador \(label)")
                             }
                         }
                     }
