@@ -1,0 +1,55 @@
+rutinas/TodayView.swift
+  s_ec4739e49ce67b::t_91469b8932e429 1156
+rutinas/WatchBridge.swift
+  s_ec4739e49ce67b::t_5cb10ac8c81b6b 1-4,7,9,11,20-21,69-70,72,74,84-85,89-99,101-105,107,110-121,124-134,136-137,139-141
+  s_ec4739e49ce67b::t_a67a14c6855eb6 5-6,8,10,12-19,22-68,71,73,75-83,86,100,106,108-109,122-123
+  s_ec4739e49ce67b::t_d7f4e69cc1c942 87-88
+  s_ec4739e49ce67b::t_b2a54dcb100908 135,138
+rutinas/HistoryView.swift
+  s_ec4739e49ce67b::t_553529d41211dd 6
+  s_ec4739e49ce67b::t_2aec39df45e895 323,326,334-336
+  s_ec4739e49ce67b::t_77619c27c842f1 219-220,225-275,278-279,324-325,328-333,337-346
+  s_ec4739e49ce67b::t_0ce849dd99c737 400-406,408-412,414,417-427
+"rut1nas watch Watch App/WatchSessionManager.swift"
+  s_ec4739e49ce67b::t_7a45c4733c0e92 93,100-125
+  s_ec4739e49ce67b::t_312c50f2fde6f1 94-99
+"rut1nas watch Watch App/WatchViews.swift"
+  s_ec4739e49ce67b::t_24cfb79a67f36f 1-240,248-280,282-283,285-289,294-299,311-329,358,366,399-400,405,455,491-492,497-501,509-523,531-713
+  s_ec4739e49ce67b::t_c4ce4ad9fec0c9 281,284,290-292
+  s_ec4739e49ce67b::t_cf6b28ef03e732 241-247
+  s_ec4739e49ce67b::t_19e51aadeec4ae 293,300-310,351-357,359-365,367-398,401-404,406-454,456-490,493-496,502-508,524-530
+  s_ec4739e49ce67b::t_6848d54edf3892 330-350
+"rut1nas watch Watch App/rut1nas_watchApp.swift"
+  s_ec4739e49ce67b::t_bcf85b3965334d 7
+rutinas/Models.swift
+  s_ec4739e49ce67b::t_43a78dc9b29536 13-22
+rutinas/WorkoutManager.swift
+  s_ec4739e49ce67b::t_ffd160ed11dcf6 464
+  s_ec4739e49ce67b::t_742b8b7fe2bdf0 44
+  s_ec4739e49ce67b::t_c9240ce406d42f 104
+  s_ec4739e49ce67b::t_b5d2885be2283e 38-40
+  s_ec4739e49ce67b::t_b4731b1cf08fef 130-135
+  s_ec4739e49ce67b::t_716d3ae0485ab6 338
+  s_ec4739e49ce67b::t_63edc371b78190 256
+rutinas/ContentView.swift
+  s_ec4739e49ce67b::t_b00c42db4dc5d8 27-31
+rutinas.xcodeproj/project.pbxproj
+  s_ec4739e49ce67b::t_5d410a593a978e 171-178
+  s_ec4739e49ce67b::t_f9511a11b8a4f2 189
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "342dc088c875be8d4521dcc0e3c0ece5725ce8d9",
+  "prompts": {},
+  "sessions": {
+    "s_ec4739e49ce67b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "122fac33-2db8-4f6b-beb8-9f797b133af8",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "jappen <juanappendino@gmail.com>"
+    }
+  }
+}
