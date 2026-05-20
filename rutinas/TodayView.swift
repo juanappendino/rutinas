@@ -1098,6 +1098,7 @@ struct ExerciseEditorialRow: View {
             Rectangle()
                 .fill(Color.dsNaranja)
                 .frame(width: 2)
+                .padding(.leading, -20)
                 .opacity(isNextUp && isSessionActive ? 1 : 0)
                 .animation(.easeOut(duration: 0.2), value: isNextUp && isSessionActive)
         }
@@ -1153,9 +1154,15 @@ struct ExerciseEditorialRow: View {
             impactLight.impactOccurred()
             return
         }
-        // Series siguientes: abrir sheet pre-cargado con valores de la serie anterior
-        pendingSetIndex = i
-        showSetLog = true
+        // Primera serie: abrir sheet para ingresar peso/reps
+        // Series siguientes: confirmar directo heredando valores de la serie anterior
+        if i == 0 {
+            pendingSetIndex = i
+            showSetLog = true
+        } else {
+            manager.toggleSet(i, for: exercise)
+            impactHeavy.impactOccurred()
+        }
     }
 
     private func defaultReps(_ s: String) -> Int {

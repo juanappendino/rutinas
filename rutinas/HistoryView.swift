@@ -492,13 +492,14 @@ private struct HistorySessionRow: View {
     let index: Int
 
     private var focusText: String {
+        let dayLabel = "DÍA \(session.dayNumber)\(session.variant)"
         if let variant = manager.routines.first(where: {
             $0.dayNumber == session.dayNumber && $0.variant == session.variant
         }) {
             let groups = variant.muscleGroups.map(\.name).joined(separator: " · ")
-            return groups.isEmpty ? "DÍA \(session.dayNumber)\(session.variant)" : groups.uppercased()
+            return groups.isEmpty ? dayLabel : "\(dayLabel) · \(groups.uppercased())"
         }
-        return "DÍA \(session.dayNumber)\(session.variant)"
+        return dayLabel
     }
 
     var body: some View {
@@ -509,7 +510,7 @@ private struct HistorySessionRow: View {
                 .frame(width: 22, alignment: .leading)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("DÍA \(session.dayNumber)\(session.variant)")
+                Text(session.displayName.uppercased())
                     .font(.geist(14, weight: .bold))
                     .foregroundStyle(Color.dsFg1)
                     .tracking(0.3)
@@ -522,10 +523,11 @@ private struct HistorySessionRow: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 4) {
-                Text("\(session.completedExerciseIDs.count) EJ")
+                Text(session.date.formatted(.dateTime.day().month()).uppercased())
                     .font(.geist(13, weight: .bold))
                     .foregroundStyle(Color.dsFg1)
-                Text(session.date.formatted(.dateTime.day().month()).uppercased())
+                    .tracking(0.3)
+                Text("\(session.completedExerciseIDs.count) EJ")
                     .font(.geist(9, weight: .medium))
                     .foregroundStyle(Color.dsFg4)
                     .tracking(1.2)
@@ -540,7 +542,7 @@ private struct HistorySessionRow: View {
                 Label("Eliminar sesión", systemImage: "trash")
             }
         }
-        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             Button(role: .destructive) {
                 manager.deleteSession(session)
             } label: {
