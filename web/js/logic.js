@@ -1,6 +1,6 @@
 // Lógica de entrenamiento: port de WorkoutManager.swift como funciones puras sobre el estado.
 // El estado es { routines, history, activeSession, ... } (ver store.js); las fechas son milisegundos.
-import { addDays, firstInt, sameMonth, sameWeek, startOfDay, MESES } from "./util.js";
+import { addDays, firstInt, sameMonth, sameWeek, startOfDay, startOfWeek, MESES } from "./util.js";
 
 export const DAY_NAMES = { 1: "Impulso", 2: "Explosión", 3: "Ancla", 4: "Tensión", 5: "Raíz", 6: "Tierra" };
 
@@ -38,7 +38,7 @@ export function setTypeFor(state, exercise) {
 // ---- Qué toca hoy
 
 export function nextWorkout(state) {
-  const active = activeRoutines(state.routines).sort((a, b) => a.dayNumber - b.dayNumber);
+  const active = activeRoutines(state.routines);   // en el orden de la lista (se cambia en RUTINAS → ordenar)
   if (!active.length) return state.routines[0] ?? { id: "", dayNumber: 1, variant: "", name: "", muscleGroups: [], isArchived: false };
   if (state.manualOverrideID) {
     const overridden = active.find((r) => r.id === state.manualOverrideID);
@@ -101,6 +101,17 @@ export function weightHistory(state, exercise) {
     if (!k) continue;
     const kg = s.weightLog[k];
     if (kg != null) out.push({ date: s.date, kg });
+  }
+  return out.sort((a, b) => a.date - b.date);
+}
+
+/** [{date, secs, km}] ascendente por fecha, para ejercicios de tiempo (cinta, plancha…). */
+export function timeHistory(state, exercise) {
+  const out = [];
+  for (const s of completedHistory(state.history)) {
+    const k = keyFor(state.routines, exercise, s);
+    const secs = k ? s.timeLog[k] : null;
+    if (secs != null && secs > 0) out.push({ date: s.date, secs, km: s.distanceLog[k] ?? null });
   }
   return out.sort((a, b) => a.date - b.date);
 }
@@ -301,6 +312,48 @@ export function groupedExercises(routines, query = "") {
     }
   }
   return groups;
+}
+
+/** Sesiones terminadas por semana (lunes a domingo): las últimas `weeks`, la más vieja primero. */
+export function weeklySessions(history, weeks = 8, now = Date.now()) {
+  const thisWeek = startOfWeek(now);
+  const counts = new Map();
+  for (const s of completedHistory(history)) {
+    const w = startOfWeek(s.date);
+    counts.set(w, (counts.get(w) ?? 0) + 1);
+  }
+  return Array.from({ length: weeks }, (_, i) => {
+    const start = addDays(thisWeek, -7 * (weeks - 1 - i));
+    return { start, count: counts.get(start) ?? 0, isCurrent: i === weeks - 1 };
+  });
+}
+
+/** Mejor carga de cada ejercicio con peso (sin cardio ni tiempo): [{id, name, kg, date}] de mayor a menor. */
+export function personalRecords(state, limit = 8) {
+  const best = new Map();
+  for (const s of completedHistory(state.history)) {
+    const routine = findRoutine(state.routines, s);
+    for (const ex of allExercises(routine)) {
+      const kg = s.weightLog[ex.id];
+      if (kg == null || kg <= 0 || (s.setTypeLog[ex.id] ?? setTypeFor({ activeSession: null }, ex)) === "time") continue;
+      const key = ex.name.toLowerCase();
+      const cur = best.get(key);
+      if (!cur || kg > cur.kg || (kg === cur.kg && s.date < cur.date)) best.set(key, { id: ex.id, name: ex.name, kg, date: s.date });
+    }
+  }
+  return [...best.values()].sort((a, b) => b.kg - a.kg || a.name.localeCompare(b.name)).slice(0, limit);
+}
+
+export const BAR_KG = 20;
+const PLATES = [25, 20, 15, 10, 5, 2.5, 1.25];
+
+/** Discos de cada lado para una barra con `total` kg (barra olímpica de 20 kg): { plates, leftover } o null si no pasa de la barra. */
+export function platesPerSide(total, bar = BAR_KG) {
+  let rest = (total - bar) / 2;
+  if (!(rest > 0)) return null;
+  const plates = [];
+  for (const p of PLATES) while (rest + 1e-9 >= p) { plates.push(p); rest -= p; }
+  return { plates, leftover: Math.round(rest * 100) / 100 };
 }
 
 /** Valor por defecto de reps al abrir el registro de una serie. */

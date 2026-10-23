@@ -103,3 +103,20 @@ test("worker: rechaza códigos cortos, métodos raros, JSON inválido y otros or
   assert.equal((await call({}, "GET", `/api/e/${CODE}`)).status, 503);
   assert.equal((await call(env, "GET", "/api/otra-cosa")).status, 404);
 });
+
+test("el orden de las rutinas lo decide el dispositivo que reordenó más tarde", () => {
+  const a = doc({ order: { ids: ["R1", "R2"], t: 100 } });
+  const b = doc({ order: { ids: ["R2", "R1"], t: 200 } });
+  assert.deepEqual(mergeDocs(a, b, NOW).order.ids, ["R2", "R1"]);
+  assert.deepEqual(mergeDocs(b, a, NOW).order.ids, ["R2", "R1"]);
+  assert.deepEqual(sanitizeDoc({ order: { ids: [1, "ok"], t: 5 } }).order, { ids: ["ok"], t: 5 });
+});
+
+test("una sesión corregida en un dispositivo reemplaza a la vieja en el otro", () => {
+  const vieja = { ...session("S1"), t: 0, weightLog: { E: 40 } };
+  const corregida = { ...session("S1"), t: NOW, weightLog: { E: 45 } };
+  const a = doc({ sessions: { S1: vieja } });
+  const b = doc({ sessions: { S1: corregida } });
+  assert.equal(mergeDocs(a, b, NOW).sessions.S1.weightLog.E, 45);
+  assert.equal(mergeDocs(b, a, NOW).sessions.S1.weightLog.E, 45);
+});

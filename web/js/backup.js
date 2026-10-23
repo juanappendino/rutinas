@@ -76,6 +76,7 @@ export function normalizeRoutine(r) {
 export function normalizeSession(s) {
   const date = parseDate(s?.date, Date.now());
   return {
+    t: num(s?.t, 0),
     id: s?.id ? upper(s.id) : uuid(),
     date,
     startedAt: parseDate(s?.startedAt, date),

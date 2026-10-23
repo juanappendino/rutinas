@@ -138,7 +138,7 @@ export function openCatalogPicker(onCreate, { title = "Elegí ejercicios", eyebr
         const on = selected.has(t.id);
         return h("button", { class: `pick${on ? " sel" : ""}`, type: "button", "aria-pressed": String(on), onclick: () => { on ? selected.delete(t.id) : selected.add(t.id); paint(); } },
           h("span", { class: "box" }, on ? icon("check", 11) : null),
-          h("span", { class: "mid" }, h("div", { class: "n", text: t.name }), h("div", { class: "m", text: `${t.defaultSets} series · ${t.defaultReps}${t.description ? " · con descripción" : ""}` })));
+          h("span", { class: "mid" }, h("div", { class: "n", text: t.name }), h("div", { class: "m", text: `${t.defaultSets} ${t.defaultSets === 1 ? "serie" : "series"} · ${t.defaultReps}${t.description ? " · con descripción" : ""}` })));
       }),
     ]));
     if (!tags.length) list.replaceChildren(h("p", { class: "empty-note", text: "Sin resultados" }));

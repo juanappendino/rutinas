@@ -1,5 +1,5 @@
 // Pestaña HOY: rutina del día, sesión activa con series, cronómetro, descanso y registro de series.
-import { h, svg, fmt1, trim1, pad2, mmss, weekdayLabel, haptic } from "../util.js";
+import { h, svg, fmt1, trim1, pad2, mmss, weekdayLabel, haptic, storage, reduceMotion } from "../util.js";
 import { icon } from "../icons.js";
 import { eyebrow, numeral, ring, rule, openSheet, sheetHeader, openAlert, segmented, iconBtn } from "../ui.js";
 import {
@@ -9,7 +9,10 @@ import * as L from "../logic.js";
 import { stopwatch, rest, onTick, unlockAudio } from "../timers.js";
 import { showSessionComplete } from "./resumen.js";
 
+const fmtPlate = (n) => String(Math.round(n * 100) / 100);   // 1.25, no 1.3
 let activeExerciseID = null;   // ejercicio elegido a mano (si todavía le quedan series)
+let lastUpID = null;           // ejercicio activo en el último dibujo (para llevar la vista hasta el nuevo)
+const HINT_KEY = "rutinas:hint-instalar";
 
 export function hoyView() {
   const unsubs = [];
@@ -21,14 +24,14 @@ export function hoyView() {
   const doneSets = L.doneSetsOf(state, routine);
   const allDone = totalSets > 0 && doneSets === totalSets;
 
-  if (!isActive) activeExerciseID = null;
+  if (!isActive) { activeExerciseID = null; lastUpID = null; }
   const next = L.nextActiveExercise(state, routine);
   const picked = activeExerciseID && exercises.find((e) => e.id === activeExerciseID && L.completedSetIndices(state, e).size < e.sets);
   const upID = isActive ? (picked ? picked.id : next?.id ?? null) : null;
   const indexOf = new Map(exercises.map((e, i) => [e.id, i]));
 
   const root = h("div", { class: "screen-pad" });
-  root.append(hero(), statsStrip());
+  root.append(hero(), isActive ? h("span") : installHint(), statsStrip());
 
   routine.muscleGroups.forEach((group) => {
     const doneInGroup = group.exercises.filter((e) => L.isExerciseCompleted(state, e)).length;
@@ -38,7 +41,27 @@ export function hoyView() {
   });
 
   const dock = dockBar();
+  // Al pasar al ejercicio siguiente, la lista se desplaza sola hasta él
+  const prevUp = lastUpID;
+  lastUpID = upID;
+  if (isActive && upID && upID !== prevUp) {
+    const t = setTimeout(() => root.querySelector(".ex.up")?.scrollIntoView({ block: "center", behavior: reduceMotion() ? "auto" : "smooth" }), 80);
+    unsubs.push(() => clearTimeout(t));
+  }
   return { el: root, dock, destroy: () => unsubs.forEach((u) => u()) };
+
+  // ---- Aviso para instalar la app (solo en iPhone/iPad, en el navegador)
+
+  function installHint() {
+    const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    const installed = navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
+    if (!ios || installed || storage.get(HINT_KEY)) return h("span");
+    const card = h("div", { class: "hint-card", role: "note" },
+      h("div", {}, h("b", { text: "Instalala en tu pantalla de inicio" }),
+        h("p", { text: "Compartir → Agregar a pantalla de inicio. Se abre a pantalla completa, funciona sin conexión y iOS no borra tus datos." })),
+      h("button", { class: "iconbtn sm", type: "button", "aria-label": "Cerrar aviso", onclick: () => { storage.set(HINT_KEY, "1"); card.remove(); } }, icon("x", 13)));
+    return card;
+  }
 
   // ---- Encabezado
 
@@ -62,8 +85,13 @@ export function hoyView() {
       mini.style.marginLeft = "auto";
       row.append(mini);
     } else {
+      const elapsed = h("span", { class: "eyebrow dim" });
+      const paintElapsed = () => { const m = Math.max(0, Math.floor((Date.now() - session.startedAt) / 60000)); elapsed.textContent = m < 60 ? `· ${m} MIN` : `· ${Math.floor(m / 60)} H ${pad2(m % 60)}`; };
+      paintElapsed();
+      const iv = setInterval(paintElapsed, 15_000);
+      unsubs.push(() => clearInterval(iv));
       row.append(h("div", { class: "in-session" },
-        eyebrow("En sesión", "accent"),
+        h("div", { class: "inline-row" }, eyebrow("En sesión", "accent"), elapsed),
         h("button", { class: "cancel-pill", type: "button", text: "CANCELAR", onclick: askCancel })));
       const w = watchWidget();
       w.style.marginLeft = "auto";
@@ -377,6 +405,8 @@ export function openSetLog(exercise, setIndex) {
       h("button", { class: "adjust", type: "button", text: "−2.5", onclick: () => adjust(-2.5) }),
       h("div", { class: "n" }, num, h("div", {}, h("span", { class: `unit${f.perSide ? " accent" : ""}`, text: f.perSide ? "KG/LADO" : "KG" }), raw() === 0 ? h("span", { class: "hint", text: "opcional" }) : null)),
       h("button", { class: "adjust", type: "button", text: "+2.5", onclick: () => adjust(2.5) })));
+    const pl = /barra/i.test(exercise.name) ? L.platesPerSide(total()) : null;
+    if (pl) frag.append(h("p", { class: "plates", text: `Discos por lado: ${pl.plates.map(fmtPlate).join(" · ")}${pl.leftover ? ` (sobran ${fmtPlate(pl.leftover)} kg)` : ""} · barra ${L.BAR_KG} kg` }));
     frag.append(h("div", { class: "numpad" }, ...["1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0", "del"].map((k) =>
       h("button", { type: "button", "aria-label": k === "del" ? "Borrar" : k, onclick: () => tap(k) }, k === "del" ? icon("backspace", 18) : k))));
     frag.append(h("button", { class: "checkrow", type: "button", "aria-pressed": String(f.perSide), onclick: togglePerSide },

@@ -241,3 +241,59 @@ test("sincronización: el documento local ya está en forma canónica (no se ve 
   store.commit((st) => { st.routines.push(...newRoutines); st.history = sessions; });
   assert.ok(sameDoc(toDoc(), sanitizeDoc(JSON.parse(JSON.stringify(toDoc())))));
 });
+
+test("la rotación sigue el orden de la lista", () => {
+  const s = fresh();
+  const [r1, r2, r3] = s.routines;
+  store.reorderActiveRoutines([r3.id, r1.id, r2.id, ...s.routines.slice(3).map((r) => r.id)]);
+  assert.equal(L.nextWorkout(store.state).id, r3.id);
+  doSession(r3);
+  assert.equal(L.nextWorkout(store.state).id, r1.id);
+  doSession(r1);
+  assert.equal(L.nextWorkout(store.state).id, r2.id);
+  assert.ok(store.state.orderAt > 0);
+});
+
+test("sesiones por semana y récords personales", () => {
+  const s = fresh();
+  const now = new Date(2026, 9, 23, 15).getTime();   // viernes 23 oct 2026
+  const base = Date.now();
+  const press = L.allExercises(s.routines[0]).find((e) => e.name !== "Cinta");   // el que registra doSession
+  const dates = [0, 1, 8, 9, 10, 70];
+  dates.forEach((d, i) => doSession(s.routines[0], { kg: 40 + i * 5, daysAgo: 0 }));
+  store.commit((st) => { st.history.forEach((x, i) => { const at = now - dates[dates.length - 1 - i] * DAY; x.date = at; x.startedAt = at; }); });
+  const weeks = L.weeklySessions(store.state.history, 8, now);
+  assert.equal(weeks.length, 8);
+  assert.equal(weeks.at(-1).isCurrent, true);
+  assert.equal(weeks.at(-1).count, 2);            // vie 23 y jue 22
+  assert.equal(weeks.reduce((n, w) => n + w.count, 0), 5);   // la de hace 70 días queda fuera de las 8 semanas
+  const prs = L.personalRecords(store.state);
+  const row = prs.find((p) => p.name === press.name);
+  assert.equal(row.kg, 65);
+  assert.ok(prs.every((p, i) => i === 0 || prs[i - 1].kg >= p.kg));
+});
+
+test("discos por lado para una barra de 20 kg", () => {
+  assert.equal(L.platesPerSide(20), null);
+  assert.equal(L.platesPerSide(15), null);
+  assert.deepEqual(L.platesPerSide(60), { plates: [20], leftover: 0 });
+  assert.deepEqual(L.platesPerSide(100), { plates: [25, 15], leftover: 0 });
+  assert.deepEqual(L.platesPerSide(42.5), { plates: [10, 1.25], leftover: 0 });
+  assert.deepEqual(L.platesPerSide(61), { plates: [20], leftover: 0.5 });
+});
+
+test("historial de tiempo y distancia de la cinta", () => {
+  const s = fresh();
+  const cinta = L.allExercises(s.routines[0]).find((e) => e.name === "Cinta");
+  const run = (secs, km, daysAgo) => {
+    store.commit((st) => { st.manualOverrideID = s.routines[0].id; });
+    store.startWorkout();
+    store.logSet(0, cinta, { type: "time", time: secs, distance: km });
+    store.finishWorkout();
+    store.commit((st) => { st.history[0].date -= daysAgo * DAY; });
+  };
+  run(600, 1.2, 6); run(900, 2, 3); run(0, null, 1);
+  const th = L.timeHistory(store.state, cinta);
+  assert.deepEqual(th.map((p) => [p.secs, p.km]), [[600, 1.2], [900, 2]]);   // el de 0 s no cuenta
+  assert.equal(L.weightHistory(store.state, cinta).length, 0);
+});

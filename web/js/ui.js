@@ -69,6 +69,7 @@ export function openSheet(build, { full = false, elevated = false, onClose = nul
   const scrim = h("div", { class: "scrim" });
   const sheet = h("div", { class: `sheet${full ? " full" : ""}${elevated ? " elevated" : ""}`, role: "dialog", "aria-modal": "true" });
   let closed = false;
+  const opener = document.activeElement;   // para devolverle el foco al cerrar
 
   const close = () => {
     if (closed) return;
@@ -77,7 +78,7 @@ export function openSheet(build, { full = false, elevated = false, onClose = nul
     scrim.classList.remove("in");
     sheet.classList.remove("in");
     sheet.style.transform = "";
-    const done = () => { scrim.remove(); sheet.remove(); if (!stack.length) lockScroll(false); onClose?.(); };
+    const done = () => { scrim.remove(); sheet.remove(); if (!stack.length) lockScroll(false); onClose?.(); try { opener?.isConnected && opener.focus(); } catch { /* sin foco */ } };
     if (reduceMotion()) done(); else setTimeout(done, 320);
   };
   const entry = { close };
@@ -97,9 +98,18 @@ export function openSheet(build, { full = false, elevated = false, onClose = nul
   scrim.addEventListener("click", close);
   addDragToClose(grab, sheet, close);
 
+  sheet.tabIndex = -1;
+  sheet.addEventListener("keydown", (e) => {
+    if (e.key !== "Tab") return;
+    const items = [...sheet.querySelectorAll("button:not(:disabled), a[href], input:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex='-1'])")].filter((n) => n.offsetParent !== null);
+    if (!items.length) return;
+    const first = items[0], last = items.at(-1);
+    if (e.shiftKey && (document.activeElement === first || document.activeElement === sheet)) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  });
   lockScroll(true);
   document.body.append(scrim, sheet);
-  requestAnimationFrame(() => requestAnimationFrame(() => { scrim.classList.add("in"); sheet.classList.add("in"); }));
+  requestAnimationFrame(() => requestAnimationFrame(() => { scrim.classList.add("in"); sheet.classList.add("in"); if (!sheet.contains(document.activeElement)) sheet.focus({ preventScroll: true }); }));
   return { close, sheet, scroll };
 }
 

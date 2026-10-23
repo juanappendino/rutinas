@@ -26,6 +26,7 @@ function emptyState() {
     hasOnboarded: false,
     restDuration: 45,
     restAt: 0,                                               // cuándo se cambió restDuration (para sincronizar)
+    orderAt: 0,                                              // cuándo se reordenaron las rutinas (para sincronizar)
     bajas: { routines: {}, sessions: {}, templates: {} },   // lápidas {id: t} de lo borrado (para sincronizar)
   };
 }
@@ -255,6 +256,16 @@ export function cancelWorkout() {
   commit((s) => { s.activeSession = null; });
 }
 
+/** Corrige una sesión ya terminada (por ejemplo el peso o las repeticiones de un ejercicio). */
+export function updateSession(id, mutator) {
+  commit((s) => {
+    const x = s.history.find((h) => h.id === id);
+    if (!x) return;
+    mutator(x);
+    x.t = Date.now();
+  });
+}
+
 export function deleteSession(id) {
   commit((s) => { s.history = s.history.filter((x) => x.id !== id); s.bajas.sessions[id] = Date.now(); });
 }
@@ -281,6 +292,7 @@ export function reorderActiveRoutines(ids) {
       return (ai < 0 ? Infinity : ai) - (bi < 0 ? Infinity : bi);
     });
     s.routines = [...active, ...archived];
+    s.orderAt = Date.now();
   });
 }
 
