@@ -4,9 +4,12 @@ import { menuSheet, openSheet, sheetHeader, confirmAlert, toast } from "../ui.js
 import { state, replaceState, resetAll, commit } from "../store.js";
 import { BackupError, backupFileName, parseBackup, parseCSV, summarizeBackup, toBackup, toCSV } from "../backup.js";
 import { completedHistory, routineName } from "../logic.js";
+import { hasSpace, leave } from "../sync.js";
+import { openSyncSheet } from "./sincro.js";
 
 export function openDataMenu() {
   menuSheet("Datos", [
+    { label: "Sincronización", sub: hasSpace() ? "Activada en este dispositivo" : "Usá tus datos en el celular y en la compu", icon: "reset", action: openSyncSheet },
     { label: "Descargar copia completa", sub: "Rutinas, historial y catálogo (JSON)", icon: "down", action: exportJSON },
     { label: "Exportar historial (CSV)", sub: "Para abrir en una planilla", icon: "list", action: exportCSV },
     { label: "Importar archivo…", sub: "Copia JSON de la app o historial CSV", icon: "up", action: pickFile },
@@ -104,8 +107,8 @@ function importCSV(text) {
 function askReset() {
   confirmAlert({
     title: "¿Borrar todos los datos?",
-    message: "Se eliminan rutinas, historial y catálogo de este navegador. No se puede deshacer, salvo que tengas una copia.",
+    message: "Se eliminan rutinas, historial y catálogo de este navegador y se deja de sincronizar (la copia en la nube no se toca). No se puede deshacer, salvo que tengas una copia.",
     confirmLabel: "Borrar todo", destructive: true,
-    onConfirm: () => { resetAll(); toast("Datos borrados"); },
+    onConfirm: () => { leave(); resetAll(); toast("Datos borrados"); },
   });
 }

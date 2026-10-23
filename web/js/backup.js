@@ -57,8 +57,9 @@ function normalizeExercise(e) {
   };
 }
 
-function normalizeRoutine(r) {
+export function normalizeRoutine(r) {
   return {
+    t: num(r?.t, 0),
     id: r?.id ? upper(r.id) : uuid(),
     dayNumber: Math.round(num(r?.dayNumber, 1)),
     variant: str(r?.variant),
@@ -72,7 +73,7 @@ function normalizeRoutine(r) {
   };
 }
 
-function normalizeSession(s) {
+export function normalizeSession(s) {
   const date = parseDate(s?.date, Date.now());
   return {
     id: s?.id ? upper(s.id) : uuid(),
@@ -92,8 +93,9 @@ function normalizeSession(s) {
   };
 }
 
-function normalizeTemplate(t) {
+export function normalizeTemplate(t) {
   return {
+    t: num(t?.t, 0),
     id: t?.id ? upper(t.id) : uuid(),
     name: str(t?.name, "Ejercicio"),
     defaultSets: Math.max(1, Math.round(num(t?.defaultSets, 3))),

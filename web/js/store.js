@@ -25,6 +25,8 @@ function emptyState() {
     manualOverrideID: null,
     hasOnboarded: false,
     restDuration: 45,
+    restAt: 0,                                               // cuándo se cambió restDuration (para sincronizar)
+    bajas: { routines: {}, sessions: {}, templates: {} },   // lápidas {id: t} de lo borrado (para sincronizar)
   };
 }
 
@@ -33,6 +35,7 @@ function emptyState() {
 export function materializeRoutine(def) {
   return {
     id: uuid(),
+    t: 0,   // última edición (ms); 0 = tal como vino de la plantilla
     dayNumber: def.dayNumber,
     variant: def.variant ?? "",
     name: def.name ?? "",
@@ -47,7 +50,7 @@ export function materializeRoutine(def) {
 
 export const defaultRoutines = () => DEFAULT_ROUTINES.map(materializeRoutine);
 export const makeTemplate = (t) => ({
-  id: uuid(), name: t.name, defaultSets: t.defaultSets ?? 3, defaultReps: t.defaultReps ?? "12", description: t.description ?? "", muscleTag: t.muscleTag ?? "",
+  id: uuid(), t: t.t ?? 0, name: t.name, defaultSets: t.defaultSets ?? 3, defaultReps: t.defaultReps ?? "12", description: t.description ?? "", muscleTag: t.muscleTag ?? "",
 });
 export const makeExercise = ({ name, sets, reps, description = "", templateID = null }) => ({ id: uuid(), name, sets, reps, description, templateID });
 export const templateToExercise = (t) => makeExercise({ name: t.name, sets: t.defaultSets, reps: t.defaultReps, description: t.description, templateID: t.id });
@@ -65,6 +68,9 @@ export function load() {
 
 /** Completa lo que falte (catálogo, rutinas por defecto, descripciones) igual que el arranque de la app iOS. */
 export function normalize() {
+  state.bajas = { routines: {}, sessions: {}, templates: {}, ...(state.bajas ?? {}) };
+  for (const r of state.routines) r.t ??= 0;
+  for (const t of state.exerciseCatalog) t.t ??= 0;
   deduplicateCatalog();
   const existing = new Set(state.exerciseCatalog.map((t) => t.name.toLowerCase()));
   const missing = EXERCISE_LIBRARY.filter((t) => !existing.has(t.name.toLowerCase())).map(makeTemplate);
@@ -125,11 +131,37 @@ export function subscribe(fn) {
 /** Reemplaza todo el estado (importación). Devuelve el estado anterior para poder deshacer. */
 export function replaceState(next) {
   const previous = JSON.parse(JSON.stringify(state));
+  const now = Date.now();
   state = { ...emptyState(), ...next };
+  // Lo que se importa gana sobre cualquier copia sincronizada, y lo que ya no está se da de baja para que no vuelva.
+  state.bajas = { routines: { ...previous.bajas?.routines }, sessions: { ...previous.bajas?.sessions }, templates: { ...previous.bajas?.templates } };
+  for (const r of state.routines) r.t = now;
+  const keep = { routines: new Set(state.routines.map((r) => r.id)), sessions: new Set(state.history.map((x) => x.id)) };
+  for (const r of previous.routines) if (!keep.routines.has(r.id)) state.bajas.routines[r.id] = now;
+  for (const x of previous.history) if (!keep.sessions.has(x.id)) state.bajas.sessions[x.id] = now;
+  state.restAt = now;
   normalize();
   scheduleSave();
   for (const fn of listeners) fn(state);
   return previous;
+}
+
+/** ¿Es una instalación sin uso (plantilla sin tocar y sin sesiones)? Entonces conviene adoptar los datos de la nube en vez de unirlos. */
+export const isPristine = () => state.history.length === 0 && state.routines.every((r) => !r.t) && !state.activeSession;
+
+/** Aplica datos que llegaron de la sincronización (no cuenta como un cambio local). */
+export function applyRemote(patch) {
+  const a = state.activeSession;
+  const routines = [...(patch.routines ?? state.routines)];
+  // Si otro dispositivo borró la rutina de una sesión en curso, se conserva hasta que termine
+  if (a && !routines.some((r) => r.dayNumber === a.dayNumber && r.variant === a.variant)) {
+    const mine = state.routines.find((r) => r.dayNumber === a.dayNumber && r.variant === a.variant);
+    if (mine) routines.push(mine);
+  }
+  state = { ...state, ...patch, routines };
+  normalize();
+  scheduleSave();
+  for (const fn of listeners) fn(state);
 }
 
 export function resetAll() {
@@ -224,7 +256,7 @@ export function cancelWorkout() {
 }
 
 export function deleteSession(id) {
-  commit((s) => { s.history = s.history.filter((x) => x.id !== id); });
+  commit((s) => { s.history = s.history.filter((x) => x.id !== id); s.bajas.sessions[id] = Date.now(); });
 }
 
 // ---- Rutinas
@@ -232,12 +264,12 @@ export function deleteSession(id) {
 export function updateRoutine(routine) {
   commit((s) => {
     const i = s.routines.findIndex((r) => r.id === routine.id);
-    if (i >= 0) s.routines[i] = routine;
+    if (i >= 0) s.routines[i] = { ...routine, t: Date.now() };
   });
 }
 
 export function toggleArchive(routine) {
-  commit((s) => { const r = s.routines.find((x) => x.id === routine.id); if (r) r.isArchived = !r.isArchived; });
+  commit((s) => { const r = s.routines.find((x) => x.id === routine.id); if (r) { r.isArchived = !r.isArchived; r.t = Date.now(); } });
 }
 
 export function reorderActiveRoutines(ids) {
@@ -255,20 +287,25 @@ export function reorderActiveRoutines(ids) {
 export function addRoutine(routine) {
   commit((s) => {
     const maxDay = Math.max(0, ...s.routines.map((r) => r.dayNumber));
-    s.routines.push({ ...routine, dayNumber: maxDay + 1, isArchived: false });
+    s.routines.push({ ...routine, dayNumber: maxDay + 1, isArchived: false, t: Date.now() });
   });
 }
 
 export function deleteRoutine(routine) {
   commit((s) => {
     s.routines = s.routines.filter((r) => r.id !== routine.id);
+    s.bajas.routines[routine.id] = Date.now();
     if (s.manualOverrideID === routine.id) s.manualOverrideID = null;
   });
 }
 
 /** Flujo "armar mi rutina" del onboarding: descarta la plantilla y arranca con una sola. */
 export function clearDefaultsAndAdd(routine) {
-  commit((s) => { s.routines = [{ ...routine, dayNumber: 1, isArchived: false }]; });
+  commit((s) => {
+    const now = Date.now();
+    for (const r of s.routines) s.bajas.routines[r.id] = now;
+    s.routines = [{ ...routine, dayNumber: 1, isArchived: false, t: now }];
+  });
 }
 
 export function finishOnboarding() {
@@ -276,13 +313,13 @@ export function finishOnboarding() {
 }
 
 export function setRestDuration(seconds) {
-  commit((s) => { s.restDuration = seconds; });
+  commit((s) => { s.restDuration = seconds; s.restAt = Date.now(); });
 }
 
 // ---- Catálogo
 
 export function addExerciseTemplate(t) {
-  commit((s) => { s.exerciseCatalog.push(t); });
+  commit((s) => { s.exerciseCatalog.push({ ...t, t: Date.now() }); });
 }
 
 /** Arma una rutina a partir de ejercicios del catálogo, agrupados por músculo (orden alfabético, como la app). */

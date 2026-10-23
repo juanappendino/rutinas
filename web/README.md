@@ -5,29 +5,40 @@ Mismos datos, mismas pantallas (HOY, RUTINAS, LOG, progreso por ejercicio) y el 
 
 ```
 cd web && python3 -m http.server 8787     # http://localhost:8787
-node --test web/tests/logic.test.mjs       # lógica, copias JSON/CSV, cronómetro
+node --test web/tests/*.test.mjs           # lógica, copias JSON/CSV, cronómetro, combinación de datos y Worker
 python3 web/scripts/gen_data.py            # regenera js/defaults.js desde DefaultData.swift y ExerciseLibrary.swift
 ```
 
 ## Datos
 
-Todo vive en `localStorage` (clave `rutinas:v1`) del navegador; no hay servidor. Para pasar los datos de la app iOS:
+Todo vive en `localStorage` (clave `rutinas:v1`) del navegador y funciona sin conexión. Opcionalmente se sincroniza entre dispositivos (ver abajo).
+Para pasar los datos de la app iOS:
 
 1. En la app iOS, **Historial → botón de descarga** (`BackupExport.swift`) guarda `rutinas-backup-AAAA-MM-DD.json`.
 2. En la web, **LOG → botón de compartir → Importar archivo…** (o *Pegar copia…*). También acepta el CSV que ya exporta la app.
 3. **LOG → Datos → Descargar copia completa** baja el mismo formato desde la web.
 
+## Sincronización
+
+**LOG → compartir → Sincronización → Crear espacio** genera un link secreto (`#espacio=…`). Abriéndolo en otro dispositivo se trae todo; después se mantiene solo
+(sube unos segundos después de cada cambio, baja cada ~45 s con la pestaña visible, y al volver la señal). Quien tenga el link puede ver y editar los datos.
+
+- `worker/index.js` + KV `ESPACIOS`: `GET/PUT /api/e/<código>`. El Worker une lo que llega con lo guardado con `js/merge.js` (el mismo código que corre en el navegador). El KV se crea solo en el primer `wrangler deploy`.
+- Qué se sincroniza: rutinas, sesiones terminadas, ejercicios propios del catálogo y el descanso. La sesión en curso queda en su dispositivo hasta que se termina.
+- Cómo se resuelven los conflictos: las rutinas por última edición (`t`), las sesiones se unen por id, y lo borrado deja una lápida para no volver. Un dispositivo sin uso adopta los datos del espacio; uno con datos los suma.
+- Límite conocido: dos rutinas nuevas creadas a la vez, sin conexión, en dos dispositivos reciben números de día distintos; las sesiones viejas de la que cambia de número pueden quedar asociadas a la otra.
+
 ## Estructura
 
 - `js/logic.js`: port puro de `WorkoutManager` (rotación, última vez, PRs, rachas, logros). `js/store.js`: estado y acciones.
-- `js/backup.js`: copia JSON (fechas ISO 8601; acepta también las de Swift por defecto) y CSV.
+- `js/merge.js` y `js/sync.js`: combinación de datos y cliente de sincronización. `js/backup.js`: copia JSON (fechas ISO 8601; acepta también las de Swift por defecto) y CSV.
 - `js/timers.js`: cronómetro/temporizador y descanso, con marcas de tiempo (siguen bien en segundo plano).
 - `js/views/*`: una pantalla por archivo. `style.css`: tokens de `DesignSystem.swift`.
 - `sw.js`: la app abre sin conexión. `vercel.json` y `_headers` (Cloudflare Pages): CSP estricta y encabezados.
 
 ## Deploy
 
-Publicar la carpeta `web/` como sitio estático (Vercel: *Root Directory* = `web`; Cloudflare Pages: directorio de salida `web`).
+Cloudflare Workers (`wrangler.jsonc` en la raíz): deploy command `npx wrangler deploy`, build command vacío. Publica `web/` como archivos estáticos y el Worker atiende `/api/*`.
 
 ## Diferencias con la app iOS
 
