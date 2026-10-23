@@ -196,3 +196,33 @@ test("cronómetro: reiniciar vuelve a cero y el temporizador suma 30 s", async (
   assert.equal(stopwatch.mode, "stopwatch");
   assert.equal(stopwatch.running, false);
 });
+
+test("CSV de la app: rutinas por nombre, rutina propia nueva y ejercicios que ya no existen", () => {
+  const s = fresh();
+  const csv = [
+    "Fecha,Rutina,Grupo,Ejercicio,Series completadas,Reps,Peso (kg),Tiempo (seg)",
+    "2026-10-20,Ancla,ESPALDA,Remo con barra,4,15,40.0,",
+    "2026-10-20,Ancla,BÍCEPS,Curl con barra,4,10,25.0,",
+    "2026-10-08,One,ESPALDA,Remo con barra,4,15,40.0,",
+    "2026-10-08,One,CORE,Plancha,2,45,,30",
+    "2026-09-21,One,CORE,Plancha,2,45,,30",
+    "2026-09-21,One,PIERNAS,Sentadilla con barra,4,10,30.0,",
+    "2026-05-14,Explosión,PIERNAS,Ejercicio que ya no existe,3,1,,",
+  ].join("\n");
+  const { sessions, newRoutines, skipped } = parseCSV(csv, s.routines);
+  assert.equal(newRoutines.length, 1);
+  assert.equal(L.routineName(newRoutines[0]), "One");
+  assert.equal(newRoutines[0].dayNumber, 7);
+  assert.deepEqual(newRoutines[0].muscleGroups.map((g) => g.name), ["ESPALDA", "CORE"]);   // armada con su sesión más reciente
+  assert.equal(skipped, 2);   // la sentadilla (no está en la última sesión de One) y el ejercicio inexistente
+  assert.equal(sessions.length, 3);
+  const ancla = sessions.find((x) => x.dayNumber === 3);
+  const remo = L.allExercises(s.routines[2]).find((e) => e.name === "Remo con barra");
+  assert.equal(ancla.weightLog[remo.id], 40);
+  assert.equal(ancla.repsLog[remo.id], 15);
+  const plancha = L.allExercises(newRoutines[0]).find((e) => e.name === "Plancha");
+  assert.equal(plancha.reps, "1 min");
+  const one = sessions.find((x) => x.dayNumber === 7 && x.date < sessions[0].date);
+  assert.equal(one.setTypeLog[plancha.id], "time");
+  assert.equal(one.timeLog[plancha.id], 30);
+});
