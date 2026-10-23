@@ -1,0 +1,7 @@
+// Sitio estático de la versión web (web/) en Cloudflare Workers. Deploy: `npx wrangler deploy`.
+// El nombre tiene que coincidir con el del proyecto en Cloudflare (rut1nas).
+{
+  "name": "rut1nas",
+  "compatibility_date": "2025-09-01",
+  "assets": { "directory": "./web" }
+}
