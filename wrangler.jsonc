@@ -2,6 +2,16 @@
 // El nombre tiene que coincidir con el del proyecto en Cloudflare (rut1nas).
 {
   "name": "rut1nas",
+  "main": "worker/index.js",
   "compatibility_date": "2025-09-01",
-  "assets": { "directory": "./web" }
+  "assets": {
+    "directory": "./web",
+    "binding": "ASSETS"
+  },
+  // Dominio propio: makeitjappen.com.ar/rutinas (la zona tiene que estar activa en esta cuenta de Cloudflare).
+  "workers_dev": true,
+  "routes": [
+    { "pattern": "makeitjappen.com.ar/rutinas", "zone_name": "makeitjappen.com.ar" },
+    { "pattern": "makeitjappen.com.ar/rutinas/*", "zone_name": "makeitjappen.com.ar" }
+  ]
 }

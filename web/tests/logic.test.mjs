@@ -226,3 +226,14 @@ test("CSV de la app: rutinas por nombre, rutina propia nueva y ejercicios que ya
   assert.equal(one.setTypeLog[plancha.id], "time");
   assert.equal(one.timeLog[plancha.id], 30);
 });
+
+test("worker: sirve web/ bajo /rutinas y en la raíz", async () => {
+  const { default: worker } = await import("../../worker/index.js");
+  const env = { ASSETS: { fetch: async (r) => new Response(new URL(r.url).pathname) } };
+  const call = async (u) => { const r = await worker.fetch(new Request(u), env); return [r.status, r.headers.get("location"), await r.text()]; };
+  assert.deepEqual(await call("https://x.com.ar/rutinas"), [301, "https://x.com.ar/rutinas/", ""]);
+  assert.deepEqual(await call("https://x.com.ar/rutinas/"), [200, null, "/"]);
+  assert.deepEqual(await call("https://x.com.ar/rutinas/js/app.js"), [200, null, "/js/app.js"]);
+  assert.deepEqual(await call("https://x.workers.dev/js/app.js"), [200, null, "/js/app.js"]);
+  assert.deepEqual(await call("https://x.com.ar/rutinasfoo"), [200, null, "/rutinasfoo"]);   // otro path que empieza igual: no se toca
+});
