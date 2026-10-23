@@ -128,6 +128,7 @@ export function syncNow() {
 
 export function startSync() {
   lastLocal = snapshot();
+  let sessions = completedHistory(state.history).length;
   subscribe(() => {
     if (!code) return;
     const now = snapshot();
@@ -135,10 +136,15 @@ export function startSync() {
     lastLocal = now;
     dirty = true;
     clearTimeout(timer);
-    timer = setTimeout(syncNow, PUSH_MS);
+    // Al terminar un entrenamiento se sube al instante; el resto de los cambios esperan unos segundos para agruparse
+    const finished = completedHistory(state.history).length;
+    const immediate = finished > sessions;
+    sessions = finished;
+    if (immediate) syncNow(); else timer = setTimeout(syncNow, PUSH_MS);
   });
   setInterval(() => { if (code && !document.hidden) syncNow(); }, POLL_MS);
-  document.addEventListener("visibilitychange", () => { if (code && !document.hidden) syncNow(); });
+  // Al salir de la app (o cambiar de pestaña) se sube lo pendiente; al volver se baja lo nuevo
+  document.addEventListener("visibilitychange", () => { if (code && (!document.hidden || dirty)) syncNow(); });
   addEventListener("online", () => { if (code) syncNow(); });
   if (code) syncNow();
 }
