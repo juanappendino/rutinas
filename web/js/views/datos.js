@@ -95,7 +95,7 @@ function importCSV(text) {
     confirmLabel: "Agregar",
     onConfirm: () => {
       commit((s) => {
-        s.routines.push(...addRoutines);
+        s.routines.push(...addRoutines.map((r) => ({ ...r, t: Date.now() })));
         s.history = [...fresh, ...s.history].sort((a, b) => b.date - a.date);
         s.hasOnboarded = true;
       });

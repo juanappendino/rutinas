@@ -226,3 +226,18 @@ test("CSV de la app: rutinas por nombre, rutina propia nueva y ejercicios que ya
   assert.equal(one.setTypeLog[plancha.id], "time");
   assert.equal(one.timeLog[plancha.id], 30);
 });
+
+test("sincronización: el documento local ya está en forma canónica (no se ve distinto del que devuelve el servidor)", async () => {
+  const { toDoc } = await import("../js/sync.js");
+  const { sanitizeDoc, sameDoc } = await import("../js/merge.js");
+  const s = fresh();
+  const csv = [
+    "Fecha,Rutina,Grupo,Ejercicio,Series completadas,Reps,Peso (kg),Tiempo (seg)",
+    "2026-10-08,One,ESPALDA,Remo con barra,4,15,40.0,",
+    "2026-10-20,Ancla,ESPALDA,Remo con barra,4,15,40.0,",
+  ].join("\n");
+  const { sessions, newRoutines } = parseCSV(csv, s.routines);
+  // una rutina que llega sin marca de edición (p. ej. de una versión anterior) no debe provocar un ciclo de sincronización
+  store.commit((st) => { st.routines.push(...newRoutines); st.history = sessions; });
+  assert.ok(sameDoc(toDoc(), sanitizeDoc(JSON.parse(JSON.stringify(toDoc())))));
+});

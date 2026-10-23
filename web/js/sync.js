@@ -19,6 +19,7 @@ let info = { phase: code ? "pending" : "off", last: null, error: "" };   // off 
 let dirty = Boolean(code);   // hay cambios propios sin subir (al abrir se sube todo: el servidor une)
 let rev = null;
 let running = null, again = false, timer = null;
+let chain = 0;                // sincronizaciones seguidas pedidas por la anterior: tope para no martillar el servidor
 let lastLocal = "";           // foto del documento local tras la última sincronización, para saber si hubo cambios propios
 const listeners = new Set();
 
@@ -48,7 +49,7 @@ export function toDoc(s = state) {
   for (const t of s.exerciseCatalog) if (!LIBRARY.has(t.name.toLowerCase())) doc.templates[t.id] = t;
   doc.rest = { v: s.restDuration, t: s.restAt ?? 0 };
   doc.bajas = structuredClone(s.bajas);
-  return doc;
+  return sanitizeDoc(doc);   // siempre en la misma forma que la que devuelve el servidor: si no, se vería "distinto" para siempre
 }
 
 function patchFromDoc(doc) {
@@ -120,7 +121,11 @@ export function syncNow() {
       setInfo({ phase: "error", error: err.message });
     } finally {
       running = null;
-      if (again) { again = false; syncNow(); }
+      if (again && chain < 3) { again = false; chain++; syncNow(); }
+      else {
+        if (again) timer = setTimeout(syncNow, 10_000);      // algo no termina de coincidir: se reintenta más tarde, sin insistir
+        again = false; chain = 0;
+      }
     }
   })();
   return running;
