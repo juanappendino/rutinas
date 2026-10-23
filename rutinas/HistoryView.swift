@@ -14,6 +14,7 @@ struct HistoryView: View {
                     DSPageHeader(eyebrow: "REGISTRO", title: "HISTORIAL") {
                         HStack(spacing: 12) {
                             MiniBars(history: manager.history)
+                            BackupShareButton()
                             ShareLink(item: csvExport, preview: SharePreview("historial.csv")) {
                                 Image(systemName: "square.and.arrow.up")
                                     .font(.system(size: 13, weight: .medium))
