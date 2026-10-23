@@ -3,7 +3,7 @@ import { h, download } from "../util.js";
 import { menuSheet, openSheet, sheetHeader, confirmAlert, toast } from "../ui.js";
 import { state, replaceState, resetAll, commit } from "../store.js";
 import { BackupError, backupFileName, parseBackup, parseCSV, summarizeBackup, toBackup, toCSV } from "../backup.js";
-import { completedHistory } from "../logic.js";
+import { completedHistory, routineName } from "../logic.js";
 
 export function openDataMenu() {
   menuSheet("Datos", [
@@ -77,16 +77,25 @@ function importJSON(text) {
 }
 
 function importCSV(text) {
-  const { sessions, skipped } = parseCSV(text, state.routines);
+  const { sessions, newRoutines, skipped } = parseCSV(text, state.routines);
   const known = new Set(state.history.map((s) => `${new Date(s.date).toDateString()}|${s.dayNumber}|${s.variant}`));
   const fresh = sessions.filter((s) => !known.has(`${new Date(s.date).toDateString()}|${s.dayNumber}|${s.variant}`));
   if (!fresh.length) { toast(skipped ? `No encontré sesiones nuevas (${skipped} filas no coinciden con tus rutinas).` : "Ese historial ya está cargado.", { ms: 7000 }); return; }
+  const used = new Set(fresh.map((s) => `${s.dayNumber}|${s.variant}`));
+  const addRoutines = newRoutines.filter((r) => used.has(`${r.dayNumber}|${r.variant}`));
+  const notes = [];
+  if (addRoutines.length) notes.push(`Se crea ${addRoutines.length === 1 ? "la rutina" : "las rutinas"} ${addRoutines.map((r) => `«${routineName(r)}»`).join(", ")}.`);
+  if (skipped) notes.push(`${skipped} filas se ignoran porque su ejercicio ya no está en la rutina.`);
   confirmAlert({
     title: `¿Agregar ${fresh.length} ${fresh.length === 1 ? "sesión" : "sesiones"}?`,
-    message: `Se suman al historial.${skipped ? ` ${skipped} filas se ignoran porque su ejercicio no está en tus rutinas.` : ""}`,
+    message: `Se suman al historial. ${notes.join(" ")}`.trim(),
     confirmLabel: "Agregar",
     onConfirm: () => {
-      commit((s) => { s.history = [...fresh, ...s.history].sort((a, b) => b.date - a.date); s.hasOnboarded = true; });
+      commit((s) => {
+        s.routines.push(...addRoutines);
+        s.history = [...fresh, ...s.history].sort((a, b) => b.date - a.date);
+        s.hasOnboarded = true;
+      });
       toast(`${fresh.length} sesiones agregadas`);
     },
   });
