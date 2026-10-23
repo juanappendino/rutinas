@@ -66,7 +66,7 @@ export function rutinaView(routineID, { rerender }) {
     }
     tools.append(h("a", { class: "acc", href: `#/ejercicio/${ex.id}`, "aria-label": `Progreso de ${ex.name}` }, icon("chart", 16)));
     tools.append(iconBtnPlain("pencil", "Editar ejercicio", () => { editingID = ex.id; rerender(); }));
-    return h("div", { class: "erow" }, h("div", { class: "mid" }, h("div", { class: "n", text: ex.name }), h("div", { class: "m", text: `${ex.sets} series · ${ex.reps}` })), tools);
+    return h("div", { class: "erow" }, h("div", { class: "mid" }, h("div", { class: "n", text: ex.name }), h("div", { class: "m", text: `${ex.sets} ${ex.sets === 1 ? "serie" : "series"} · ${ex.reps}` })), tools);
   }
 
   function editForm(group, ex) {

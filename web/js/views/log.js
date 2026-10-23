@@ -2,9 +2,10 @@
 import { h, fmt1, pad2, dayMonthLabel, longDayLabel, mmss, trim1 } from "../util.js";
 import { icon } from "../icons.js";
 import { pageHeader, iconBtn, segmented, rule, emptyArchive, eyebrow, openSheet, sheetHeader, confirmAlert, toast } from "../ui.js";
-import { state, deleteSession } from "../store.js";
+import { state, deleteSession, updateSession } from "../store.js";
 import * as L from "../logic.js";
 import { openDataMenu } from "./datos.js";
+import { hasSpace, onSyncChange, syncInfo } from "../sync.js";
 
 let tab = 0;          // 0 progreso · 1 ejercicios · 2 sesiones
 let query = "";
@@ -14,10 +15,15 @@ export function logView({ rerender }) {
   const bars = L.miniBars(state.history);
   const peak = Math.max(1, ...bars);
   const mini = h("div", { class: "minibars", "aria-hidden": "true" }, ...bars.map((v) => { const i = h("i"); i.style.height = `${Math.max(3, 48 * (v / peak))}px`; return i; }));
-  root.append(pageHeader("Registro", "Historial", mini, iconBtn("share", "Exportar o importar datos", openDataMenu, "", 15)));
+  const dataBtn = iconBtn("share", "Exportar o importar datos", openDataMenu, "", 15);
+  const dot = h("span", { class: "syncdot", "aria-hidden": "true" });
+  const paintDot = () => { const s = syncInfo(); dot.hidden = !hasSpace(); dot.className = `syncdot ${s.phase}`; dataBtn.title = hasSpace() ? `Datos · sincronización: ${s.phase === "ok" ? "al día" : s.phase === "error" ? "con error" : "en curso"}` : "Exportar o importar datos"; };
+  paintDot();
+  const btnWrap = h("div", { class: "btn-dot" }, dataBtn, dot);
+  root.append(pageHeader("Registro", "Historial", mini, btnWrap));
   root.append(h("div", { class: "tabs" }, segmented(["PROGRESO", "EJERCICIOS", "SESIONES"], tab, (i) => { tab = i; rerender(); })));
   root.append(tab === 0 ? progreso() : tab === 1 ? ejercicios() : sesiones());
-  return { el: root };
+  return { el: root, destroy: onSyncChange(paintDot) };
 }
 
 // ---- Progreso
@@ -43,6 +49,25 @@ function progreso() {
   wrap.append(h("div", { class: "stat-pad" }, h("div", { class: "stat-grid" },
     stat("Sesiones", L.totalSessions(state.history)), stat("Ejercicios", L.totalExercisesCompleted(state.history)),
     stat("Esta semana", L.currentWeekSessions(state.history)), stat("Este mes", L.currentMonthDays(state.history)))));
+
+  const weeks = L.weeklySessions(state.history);
+  if (weeks.some((w) => w.count > 0)) {
+    const peak = Math.max(3, ...weeks.map((w) => w.count));
+    wrap.append(h("div", { class: "stat-pad section" }, rule("Últimas 8 semanas"),
+      h("div", { class: "weeks", role: "img", "aria-label": `Sesiones por semana: ${weeks.map((w) => w.count).join(", ")}` }, ...weeks.map((w) => {
+        const bar = h("i", { class: w.isCurrent ? "cur" : "" });
+        bar.style.height = `${Math.max(w.count ? 8 : 3, (w.count / peak) * 64)}px`;
+        return h("div", { class: "wk", title: `Semana del ${dayMonthLabel(w.start)}: ${w.count}` }, h("span", { class: "n", text: w.count ? String(w.count) : "" }), bar, h("span", { class: "d", text: dayMonthLabel(w.start).replace(/ /g, "\u00a0") }));
+      }))));
+  }
+  const records = L.personalRecords(state);
+  if (records.length) {
+    wrap.append(h("div", { class: "stat-pad section" }, rule("Récords"),
+      h("div", { class: "list" }, ...records.map((r) => h("a", { class: "erow-link", href: `#/ejercicio/${r.id}` },
+        h("div", { class: "mid" }, h("div", { class: "n", text: r.name }), h("div", { class: "m", text: dayMonthLabel(r.date) })),
+        h("span", { class: "rec-kg" }, fmt1(r.kg), h("small", { text: " kg" })),
+        h("span", { class: "chev" }, icon("chevron-right", 14)))))));
+  }
 
   wrap.append(h("div", { class: "stat-pad" }, rule("Logros")));
   wrap.lastChild.style.marginTop = "28px";
@@ -112,28 +137,72 @@ function sessionRow(s, i) {
 
 function openSessionDetail(s) {
   const routine = L.findRoutine(state.routines, s);
+  const isTime = (ex) => s.setTypeLog[ex.id] === "time" || (s.timeLog[ex.id] != null && s.repsLog[ex.id] == null);
   const rows = [];
   for (const group of routine?.muscleGroups ?? []) {
     for (const ex of group.exercises) {
       const sets = s.completedSetsLog[ex.id]?.length ?? 0;
       if (!sets) continue;
       const parts = [`${sets} ${sets === 1 ? "serie" : "series"}`];
-      if (s.setTypeLog[ex.id] === "time" || (s.timeLog[ex.id] != null && s.repsLog[ex.id] == null)) {
+      if (isTime(ex)) {
         if (s.timeLog[ex.id] != null) parts.push(mmss(s.timeLog[ex.id]));
         if (s.distanceLog[ex.id] != null) parts.push(`${trim1(s.distanceLog[ex.id])} km`);
       } else {
         if (s.weightLog[ex.id]) parts.push(`${fmt1(s.weightLog[ex.id])} kg`);
         if (s.repsLog[ex.id] != null) parts.push(`${s.repsLog[ex.id]} reps`);
       }
-      rows.push(h("div", { class: "erow" }, h("div", { class: "mid" }, h("div", { class: "n", text: ex.name }), h("div", { class: "m", text: parts.join(" · ") }))));
+      rows.push(h("button", { class: "erow-link", type: "button", "aria-label": `Corregir ${ex.name}`, onclick: () => { sheet.close(); editExercise(s, ex, isTime(ex)); } },
+        h("div", { class: "mid" }, h("div", { class: "n", text: ex.name }), h("div", { class: "m", text: parts.join(" · ") })),
+        h("span", { class: "chev" }, icon("pencil", 14))));
     }
   }
-  openSheet((close) => ({
+  const sheet = openSheet((close) => ({
     header: sheetHeader(L.sessionName(state.routines, s), close, { eyebrowText: `${longDayLabel(s.date)} · ${L.durationMinutes(s) > 0 ? `${L.durationMinutes(s)} min` : "sin duración"}`, tight: true }),
-    body: h("div", { class: "edit-group" }, ...(rows.length ? rows : [h("p", { class: "empty-note", text: "No hay series registradas para esta sesión." })]),
+    body: h("div", { class: "edit-group" }, ...(rows.length ? [...rows, h("p", { class: "hint-note", text: "Tocá un ejercicio para corregir lo que cargaste." })] : [h("p", { class: "empty-note", text: "No hay series registradas para esta sesión." })]),
       h("button", { class: "btn-secondary destructive", type: "button", text: "Eliminar sesión", onclick: () => confirmAlert({
         title: "¿Eliminar esta sesión?", message: "Se borra del historial y de las estadísticas.", confirmLabel: "Eliminar", destructive: true,
         onConfirm: () => { deleteSession(s.id); close(); toast("Sesión eliminada"); },
       }) })),
   }));
+}
+
+/** Corrige lo registrado de un ejercicio en una sesión ya terminada. */
+function editExercise(s, ex, time) {
+  const num = (v) => (v === "" || v == null ? null : Number(String(v).replace(",", ".")));
+  const field = (label, value, attrs = {}) => {
+    const input = h("input", { class: "field", type: "text", inputmode: "decimal", autocomplete: "off", value: value ?? "", "aria-label": label, ...attrs });
+    return { input, el: h("label", {}, eyebrow(label), input) };
+  };
+  const kg = field("Peso (kg)", s.weightLog[ex.id] ? trim1(s.weightLog[ex.id]) : "");
+  const reps = field("Repeticiones", s.repsLog[ex.id] ?? "", { inputmode: "numeric" });
+  const mins = field("Minutos", s.timeLog[ex.id] != null ? Math.floor(s.timeLog[ex.id] / 60) : "", { inputmode: "numeric" });
+  const secs = field("Segundos", s.timeLog[ex.id] != null ? Math.round(s.timeLog[ex.id] % 60) : "", { inputmode: "numeric" });
+  const dist = field("Distancia (km)", s.distanceLog[ex.id] != null ? trim1(s.distanceLog[ex.id]) : "");
+  const save = h("button", { class: "btn-primary", type: "button", text: "Guardar cambios" });
+  const { close } = openSheet((close) => ({
+    header: sheetHeader(ex.name, close, { eyebrowText: `Corregir · ${longDayLabel(s.date)}`, tight: true }),
+    body: h("div", { class: "form" }, ...(time
+      ? [h("div", { class: "twocol flat" }, mins.el, secs.el), dist.el]
+      : [kg.el, reps.el])),
+    footer: h("div", { class: "sheet-foot" }, save),
+  }));
+  save.addEventListener("click", () => {
+    const bad = [kg, reps, mins, secs, dist].some((f) => f.input.value !== "" && !Number.isFinite(num(f.input.value)));
+    if (bad) { toast("Revisá los números: alguno no es válido."); return; }
+    updateSession(s.id, (x) => {
+      if (time) {
+        const t = (num(mins.input.value) ?? 0) * 60 + (num(secs.input.value) ?? 0);
+        if (mins.input.value !== "" || secs.input.value !== "") x.timeLog[ex.id] = t;
+        const d = num(dist.input.value);
+        if (d == null) delete x.distanceLog[ex.id]; else x.distanceLog[ex.id] = d;
+      } else {
+        const w = num(kg.input.value);
+        if (w == null || w === 0) delete x.weightLog[ex.id]; else x.weightLog[ex.id] = w;
+        const r = num(reps.input.value);
+        if (r != null) x.repsLog[ex.id] = Math.round(r);
+      }
+    });
+    close();
+    toast("Sesión corregida");
+  });
 }

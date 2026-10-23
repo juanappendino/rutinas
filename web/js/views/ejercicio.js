@@ -1,39 +1,53 @@
 // Progreso de un ejercicio: máximo, ganancia, gráfico de cargas por sesión y lista de sesiones pasadas.
-import { h, svg, fmt1, DIAS_CORTO, MESES_CORTO, dayMonthLabel } from "../util.js";
+import { h, svg, fmt1, mmss, DIAS_CORTO, MESES_CORTO, dayMonthLabel } from "../util.js";
 import { icon } from "../icons.js";
 import { eyebrow, rule } from "../ui.js";
 import { state } from "../store.js";
-import { allExercises, weightHistory } from "../logic.js";
+import { allExercises, timeHistory, weightHistory } from "../logic.js";
 
 export function ejercicioView(exerciseID) {
   const ex = state.routines.flatMap(allExercises).find((e) => e.id === exerciseID);
   const back = h("button", { class: "back", type: "button", onclick: () => (history.length > 1 ? history.back() : (location.hash = "#/log")) }, icon("chevron-left", 12), "Atrás");
   if (!ex) return { el: h("div", { class: "nodata" }, h("h2", { text: "Ejercicio no encontrado" }), back) };
 
-  const data = weightHistory(state, ex);
-  const root = h("div", { class: "screen-pad" });
+  // Con peso: carga máxima. Si no hay peso pero sí tiempo (cinta, plancha): distancia o minutos.
+  let data = weightHistory(state, ex).map((p) => ({ date: p.date, v: p.kg })), unit = "kg", title = "Máximo", extra = () => "";
   if (!data.length) {
-    root.append(h("div", { class: "navbar" }, back, h("span", { class: "t", text: ex.name })));
-    root.append(h("div", { class: "nodata" }, icon("chart", 40), h("h2", { text: "Sin datos aún" }), h("p", { text: "Registrá cargas durante el entrenamiento para ver tu progreso acá" })));
+    const th = timeHistory(state, ex);
+    const withKm = th.filter((p) => p.km > 0);
+    if (withKm.length) {
+      data = withKm.map((p) => ({ date: p.date, v: p.km, secs: p.secs }));
+      unit = "km"; title = "Mejor distancia";
+      extra = (p) => ` · ${mmss(p.secs)} · ${fmt1(p.v / (p.secs / 3600))} km/h`;
+    } else if (th.length) {
+      data = th.map((p) => ({ date: p.date, v: p.secs / 60 }));
+      unit = "min"; title = "Más tiempo";
+    }
+  }
+
+  const root = h("div", { class: "screen-pad" });
+  root.append(h("div", { class: "navbar" }, back, h("span", { class: "t", text: ex.name })));
+  if (!data.length) {
+    root.append(h("div", { class: "nodata" }, icon("chart", 40), h("h2", { text: "Sin datos aún" }), h("p", { text: "Registrá cargas o tiempos durante el entrenamiento para ver tu progreso acá" })));
     return { el: root };
   }
 
-  const kgs = data.map((d) => d.kg);
-  const max = Math.max(...kgs), last = kgs.at(-1);
-  const avg = kgs.reduce((a, b) => a + b, 0) / kgs.length;
-  const gain = data.length > 1 ? last - kgs[0] : 0;
+  const vs = data.map((d) => d.v);
+  const max = Math.max(...vs), last = vs.at(-1);
+  const avg = vs.reduce((a, b) => a + b, 0) / vs.length;
+  const gain = data.length > 1 ? last - vs[0] : 0;
 
-  root.append(h("div", { class: "navbar" }, back, h("span", { class: "t", text: ex.name })));
   root.append(h("div", { class: "hero-max" },
-    h("div", {}, eyebrow("Máximo", "lg"), h("div", { class: "big" }, h("b", { text: fmt1(max) }), h("span", { text: "kg" }))),
-    gain > 0 ? h("div", { class: "gain" }, eyebrow("Ganancia", "lg"), h("b", { text: `+${fmt1(gain)} kg` })) : null));
+    h("div", {}, eyebrow(title, "lg"), h("div", { class: "big" }, h("b", { text: fmt1(max) }), h("span", { text: unit }))),
+    gain > 0 ? h("div", { class: "gain" }, eyebrow("Ganancia", "lg"), h("b", { text: `+${fmt1(gain)} ${unit}` })) : null));
   root.append(h("div", { class: "card chartcard" }, eyebrow("Progreso"), chart(data)));
-  const cell = (label, value, unit) => h("div", {}, eyebrow(label), h("div", { class: "v" }, value, unit ? h("span", { text: unit }) : null));
-  root.append(h("div", { class: "strip3" }, cell("Último", fmt1(last), "kg"), cell("Sesiones", String(data.length)), cell("Promedio", fmt1(avg), "kg")));
+  const cell = (label, value, u) => h("div", {}, eyebrow(label), h("div", { class: "v" }, value, u ? h("span", { text: u }) : null));
+  root.append(h("div", { class: "strip3" }, cell("Último", fmt1(last), unit), cell("Sesiones", String(data.length)), cell("Promedio", fmt1(avg), unit)));
 
   const past = h("section", { class: "group" }, rule("Sesiones pasadas"), ...[...data].reverse().map((p) => {
     const d = new Date(p.date);
-    return h("div", { class: "past" }, h("span", { class: "d", text: `${DIAS_CORTO[d.getDay()]} ${d.getDate()} ${MESES_CORTO[d.getMonth()]}` }), h("span", { class: "k" }, fmt1(p.kg), h("span", { text: "kg" })));
+    return h("div", { class: "past" }, h("span", { class: "d", text: `${DIAS_CORTO[d.getDay()]} ${d.getDate()} ${MESES_CORTO[d.getMonth()]}` }),
+      h("span", { class: "k" }, fmt1(p.v), h("span", { text: `${unit}${extra(p)}` })));
   }));
   past.style.marginTop = "28px";
   root.append(past);
@@ -44,7 +58,7 @@ export function ejercicioView(exerciseID) {
 function chart(data) {
   const W = 320, H = 190, L = 30, R = 10, T = 22, B = 24;
   const n = data.length;
-  const ys = data.map((d) => d.kg);
+  const ys = data.map((d) => d.v);
   let lo = Math.min(...ys), hi = Math.max(...ys);
   const span = hi - lo;
   if (span < 0.01) { lo = Math.max(0, lo * 0.8); hi = hi * 1.2 + 1; } else { lo = Math.max(0, lo - span * 0.25); hi += span * 0.25; }
@@ -71,7 +85,7 @@ function chart(data) {
   });
 
   if (n > 1) {
-    const pts = data.map((d, i) => [x(i), y(d.kg)]);
+    const pts = data.map((d, i) => [x(i), y(d.v)]);
     const path = smooth(pts);
     el.append(svg("path", { d: `${path} L ${pts.at(-1)[0]} ${H - B} L ${pts[0][0]} ${H - B} Z`, fill: "url(#g-area)", stroke: "none" }));
     el.append(svg("path", { d: path, fill: "none", stroke: "#ff6b00", "stroke-width": 2, "stroke-linecap": "round", "stroke-linejoin": "round" }));

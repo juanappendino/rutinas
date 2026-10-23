@@ -40,6 +40,7 @@ function mount(view, route, keepScroll) {
   current?.destroy?.();
   current = view;
   screen.replaceChildren(view.el);
+  if (!keepScroll) view.el.classList.add("view-in");   // entrada suave al cambiar de pantalla (no al redibujar la misma)
   $("dock").replaceChildren(...(view.dock ? [view.dock] : []));
   screen.scrollTop = scrollTop;
   currentKey = route.key;
@@ -97,6 +98,8 @@ document.addEventListener("pointerdown", unlockAudio, { once: true });
 window.addEventListener("pagehide", saveNow);
 startSync();
 render();
+// Pide al navegador que no borre los datos si hace falta liberar espacio
+try { navigator.storage?.persist?.(); } catch { /* sin soporte */ }
 handleInvite();
 
 if ("serviceWorker" in navigator && location.protocol !== "file:") {

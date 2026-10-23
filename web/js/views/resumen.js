@@ -2,6 +2,7 @@
 import { h, fmt1, longDayLabel, haptic } from "../util.js";
 import { eyebrow, numeral } from "../ui.js";
 import { icon } from "../icons.js";
+import { toast } from "../ui.js";
 
 export function showSessionComplete(summary) {
   let step = 0;
@@ -32,8 +33,28 @@ export function showSessionComplete(summary) {
 
   const overlay = h("div", { class: "complete", role: "dialog", "aria-modal": "true", "aria-label": "Sesión completa" },
     h("div", { class: "stack" }, title, stats),
-    reveal(h("button", { class: "btn-primary", type: "button", text: "Listo", onclick: () => overlay.remove() }), 0.5));
+    reveal(h("div", { class: "complete-actions" },
+      h("button", { class: "btn-secondary", type: "button", text: "Compartir", onclick: () => shareSummary(summary) }),
+      h("button", { class: "btn-primary", type: "button", text: "Listo", onclick: () => overlay.remove() })), 0.5));
   document.body.append(overlay);
   haptic("success");
-  overlay.querySelector("button").focus();
+  overlay.querySelector(".btn-primary").focus();
+}
+
+/** Texto corto del entrenamiento para mandar por mensaje. */
+export function summaryText(summary) {
+  const lines = [`${summary.routineName} · ${longDayLabel(summary.sessionDate).toLowerCase()}`];
+  const stats = [];
+  if (summary.durationMinutes > 0) stats.push(`${summary.durationMinutes} min`);
+  stats.push(`${summary.totalSets} series`);
+  lines.push(stats.join(" · "));
+  if (summary.heaviest) lines.push(`Más pesado: ${summary.heaviest.name} ${fmt1(summary.heaviest.kg)} kg`);
+  for (const pr of summary.newPRs) lines.push(`🏆 ${pr.name}${pr.name.includes(" · ") ? "" : ` ${fmt1(pr.kg)} kg`}`);
+  return lines.join("\n");
+}
+
+async function shareSummary(summary) {
+  const text = summaryText(summary);
+  try { if (navigator.share) { await navigator.share({ text }); return; } } catch (e) { if (e?.name === "AbortError") return; }
+  try { await navigator.clipboard.writeText(text); toast("Resumen copiado"); } catch { toast("No se pudo copiar el resumen"); }
 }

@@ -48,17 +48,22 @@ export function toDoc(s = state) {
   for (const x of completedHistory(s.history)) doc.sessions[x.id] = x;
   for (const t of s.exerciseCatalog) if (!LIBRARY.has(t.name.toLowerCase())) doc.templates[t.id] = t;
   doc.rest = { v: s.restDuration, t: s.restAt ?? 0 };
+  doc.order = { ids: s.routines.map((r) => r.id), t: s.orderAt ?? 0 };
   doc.bajas = structuredClone(s.bajas);
   return sanitizeDoc(doc);   // siempre en la misma forma que la que devuelve el servidor: si no, se vería "distinto" para siempre
 }
 
 function patchFromDoc(doc) {
   // Se conserva el orden local de las rutinas; las nuevas van al final por número de día
+  // y, si otro dispositivo reordenó más tarde, el orden de ese dispositivo
   const known = new Set(state.routines.map((r) => r.id));
-  const mine = state.routines.filter((r) => doc.routines[r.id]).map((r) => doc.routines[r.id]);
-  const added = Object.values(doc.routines).filter((r) => !known.has(r.id)).sort((a, b) => a.dayNumber - b.dayNumber);
+  const byOrder = doc.order.t > (state.orderAt ?? 0);
+  const base = byOrder ? doc.order.ids.filter((id) => doc.routines[id]).map((id) => doc.routines[id]) : state.routines.filter((r) => doc.routines[r.id]).map((r) => doc.routines[r.id]);
+  const placed = new Set(base.map((r) => r.id));
+  const added = Object.values(doc.routines).filter((r) => !placed.has(r.id) && (byOrder || !known.has(r.id))).sort((a, b) => a.dayNumber - b.dayNumber);
   return {
-    routines: [...mine, ...added],
+    orderAt: Math.max(state.orderAt ?? 0, doc.order.t),
+    routines: [...base, ...added],
     history: Object.values(doc.sessions).sort((a, b) => b.date - a.date),
     exerciseCatalog: [...state.exerciseCatalog.filter((t) => LIBRARY.has(t.name.toLowerCase())), ...Object.values(doc.templates)],
     restDuration: doc.rest.v,

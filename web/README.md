@@ -40,6 +40,14 @@ Para pasar los datos de la app iOS:
 
 Cloudflare Workers (`wrangler.jsonc` en la raíz): deploy command `npx wrangler deploy`, build command vacío. Publica `web/` como archivos estáticos y el Worker atiende `/api/*`.
 
+## Más que la app iOS
+
+- **Log:** gráfico de las últimas 8 semanas, récords personales por ejercicio, y toque en una sesión para corregir el peso, las repeticiones, el tiempo o la distancia de cualquier ejercicio (se sincroniza con la marca de edición `t`).
+- **Progreso por ejercicio:** también para cinta y planchas (distancia, velocidad y tiempo), no solo para ejercicios con peso.
+- **Hoy:** tiempo transcurrido de la sesión, la lista se desplaza sola al ejercicio siguiente, calculadora de discos por lado en ejercicios con barra, y "Compartir" el resumen al terminar.
+- **Rotación:** "Orden de rotación" ahora sí cambia qué rutina toca después (la app iOS ordena siempre por número de día). El orden se sincroniza.
+- **Datos:** pide almacenamiento persistente al navegador, avisa cómo instalarla en iPhone, e indica el estado de la sincronización en el botón de Datos.
+
 ## Diferencias con la app iOS
 
 - Orden de rutinas con botones ▲▼ (en vez de arrastrar) y menú ⋯ en cada fila (en vez de mantener apretado).

@@ -1,7 +1,7 @@
 // Combinación de datos entre dispositivos (sin DOM ni estado global: se usa en el navegador y en el Worker, y se testea con node).
 // Un "documento" de sincronización es { v, routines, sessions, templates, rest, bajas }:
 //   - routines y templates se guardan por id con una marca de tiempo `t`: gana la edición más reciente.
-//   - sessions (las sesiones terminadas) no se editan: se unen por id.
+//   - sessions (las sesiones terminadas) se unen por id; si se corrigieron en dos lados, gana la edición más reciente.
 //   - bajas: lápidas {id: t} de lo que se borró, para que no "resucite" al sincronizar con otro dispositivo.
 import { normalizeRoutine, normalizeSession, normalizeTemplate } from "./backup.js";
 import { allExercises, routineName } from "./logic.js";
@@ -13,7 +13,7 @@ export const MAX_TEMPLATES = 2_000;
 const TOMBSTONE_TTL = 365 * 86_400_000;   // una lápida más vieja que esto se descarta
 
 export const emptyDoc = () => ({
-  v: DOC_VERSION, routines: {}, sessions: {}, templates: {}, rest: { v: 45, t: 0 },
+  v: DOC_VERSION, routines: {}, sessions: {}, templates: {}, rest: { v: 45, t: 0 }, order: { ids: [], t: 0 },
   bajas: { routines: {}, sessions: {}, templates: {} },
 });
 
@@ -38,6 +38,9 @@ export function sanitizeDoc(raw) {
   out.sessions = take(raw.sessions, MAX_SESSIONS, normalizeSession, () => true);
   out.templates = take(raw.templates, MAX_TEMPLATES, normalizeTemplate, (t) => t.name.length > 0);
   if (isObj(raw.rest) && typeof raw.rest.v === "number" && raw.rest.v >= 5 && raw.rest.v <= 3600) out.rest = { v: Math.round(raw.rest.v), t: num(raw.rest.t) };
+  if (isObj(raw.order) && Array.isArray(raw.order.ids)) {
+    out.order = { ids: raw.order.ids.filter((id) => typeof id === "string" && id.length <= 80).slice(0, MAX_ROUTINES), t: num(raw.order.t) };
+  }
   for (const kind of ["routines", "sessions", "templates"]) {
     const src = raw.bajas?.[kind];
     if (!isObj(src)) continue;
@@ -75,11 +78,13 @@ export function mergeDocs(a, b, now = Date.now()) {
     out[kind] = items;
   }
 
-  const sessions = { ...b.sessions, ...a.sessions };
+  const sessions = { ...a.sessions };
+  for (const [id, item] of Object.entries(b.sessions)) if (!sessions[id] || item.t > sessions[id].t) sessions[id] = item;   // se pueden corregir: gana la última edición
   for (const id of Object.keys(out.bajas.sessions)) delete sessions[id];
   out.sessions = sessions;
 
   out.rest = b.rest.t > a.rest.t ? b.rest : a.rest;
+  out.order = b.order.t > a.order.t ? b.order : a.order;
 
   dedupeRoutines(out, now);
   fixDayCollisions(out, now);
