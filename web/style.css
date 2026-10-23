@@ -514,3 +514,10 @@ textarea.field { resize: none; line-height: 1.4; }
 .sheet .edit-group { margin-top: 0; padding-bottom: calc(24px + var(--safe-bottom)); }
 .sheet .edit-group .btn-secondary { margin-top: 24px; }
 .erow-link .chev { color: var(--fg4); }
+
+.desc-text.pad0 { padding: 0 0 8px; }
+.desc-text.small { font-size: 12px; line-height: 1.5; color: var(--fg3); padding-top: 8px; }
+.sync-status { padding: 12px 14px; border-radius: 4px; background: var(--card); border: 1px solid var(--hairline); font-size: 13px; }
+.sync-status.ok { border-color: var(--naranja-30); color: var(--naranja); }
+.sync-status.error { border-color: rgba(229, 68, 59, .4); color: var(--rojo-400); }
+.form .btn-primary, .form .btn-secondary { margin-top: 0; }

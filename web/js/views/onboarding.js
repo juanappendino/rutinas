@@ -5,6 +5,7 @@ import { eyebrow, menuSheet } from "../ui.js";
 import { clearDefaultsAndAdd, finishOnboarding } from "../store.js";
 import { openCatalogPicker } from "./rutinas.js";
 import { pickFile, openPaste } from "./datos.js";
+import { askLink } from "./sincro.js";
 
 export function onboardingView() {
   const option = (cls, iconName, title, sub, onclick) => h("button", { class: `opt ${cls}`.trim(), type: "button", onclick },
@@ -18,6 +19,7 @@ export function onboardingView() {
       option("", "up", "Traer mis datos de la app", "Importar la copia de la app de iPhone", () => menuSheet("Importar datos", [
         { label: "Importar archivo…", sub: "Copia JSON o historial CSV", icon: "up", action: pickFile },
         { label: "Pegar copia…", sub: "Si la copiaste como texto", icon: "pencil", action: openPaste },
+        { label: "Tengo un link de sincronización", sub: "Traer los datos desde otro dispositivo", icon: "reset", action: askLink },
       ]))));
   return { el };
 }

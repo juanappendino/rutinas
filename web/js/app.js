@@ -10,6 +10,8 @@ import { ejercicioView } from "./views/ejercicio.js";
 import { onboardingView } from "./views/onboarding.js";
 import { unlockAudio } from "./timers.js";
 import { closeAllSheets } from "./ui.js";
+import { startSync, parseCode } from "./sync.js";
+import { askJoin } from "./views/sincro.js";
 
 const TABS = [
   { id: "hoy", label: "HOY", href: "#/hoy" },
@@ -82,10 +84,20 @@ load();
 setRerender(scheduleRender);
 subscribe(scheduleRender);
 buildTabbar();
-window.addEventListener("hashchange", () => { closeAllSheets(); render(); });
+// #espacio=<código>: link de invitación de otro dispositivo
+function handleInvite() {
+  const code = location.hash.startsWith("#espacio=") ? parseCode(location.hash) : null;
+  if (!code) return false;
+  history.replaceState(null, "", `${location.pathname}${location.search}#/hoy`);
+  askJoin(code);
+  return true;
+}
+window.addEventListener("hashchange", () => { if (!handleInvite()) { closeAllSheets(); render(); } });
 document.addEventListener("pointerdown", unlockAudio, { once: true });
 window.addEventListener("pagehide", saveNow);
+startSync();
 render();
+handleInvite();
 
 if ("serviceWorker" in navigator && location.protocol !== "file:") {
   navigator.serviceWorker.register("sw.js").catch(() => { /* sin offline: la app anda igual con conexión */ });
