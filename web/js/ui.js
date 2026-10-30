@@ -190,9 +190,10 @@ export function toast(message, { action = null, ms = 5000 } = {}) {
   if (typeof document === "undefined") return;   // sin DOM (tests)
   const box = $("toasts");
   if (!box) return;
-  const el = h("div", { class: "toast", role: "status" }, h("span", { text: message }));
+  const el = h("div", { class: "toast", role: "status" }, h("span", { class: "msg", text: message }));
   const remove = () => el.remove();
   if (action) el.append(h("button", { type: "button", text: action.label, onclick: () => { action.fn(); remove(); } }));
+  el.append(h("button", { class: "x", type: "button", "aria-label": "Cerrar aviso", onclick: remove }, icon("x", 14)));
   while (box.children.length >= 3) box.firstChild.remove();
   box.append(el);
   setTimeout(remove, ms);

@@ -4,7 +4,7 @@ import { addRoutine, deleteRoutine, overrideNextRoutine, routineFromFavorites, s
 import { activeRoutines, daysSinceLastSession, favoriteExercises } from "./logic.js";
 import { toast } from "./ui.js";
 
-const FLAG = "rutinaDeVuelta";
+const FLAG = "rutinaDeVuelta2";   // v2: en la primera versión el aviso solo se podía cerrar con «Deshacer» y se perdía la rutina sin querer
 const NAME = "Vuelta";
 export const MIN_DAYS = 10;
 
