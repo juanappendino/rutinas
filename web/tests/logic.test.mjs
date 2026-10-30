@@ -297,3 +297,34 @@ test("historial de tiempo y distancia de la cinta", () => {
   assert.deepEqual(th.map((p) => [p.secs, p.km]), [[600, 1.2], [900, 2]]);   // el de 0 s no cuenta
   assert.equal(L.weightHistory(store.state, cinta).length, 0);
 });
+
+function sessionWith(routine, names, daysAgo, kg = 20) {
+  const s = { id: crypto.randomUUID().toUpperCase(), t: 0, date: Date.now() - daysAgo * DAY, startedAt: Date.now() - daysAgo * DAY, dayNumber: routine.dayNumber, variant: "", completedExerciseIDs: [], weightLog: {}, completedSetsLog: {}, isCompleted: true, setTypeLog: {}, repsLog: {}, timeLog: {}, distanceLog: {}, lastSetAt: null };
+  for (const ex of L.allExercises(routine)) if (names.includes(ex.name)) { s.completedSetsLog[ex.id] = [0, 1]; s.weightLog[ex.id] = kg; s.repsLog[ex.id] = 10; s.setTypeLog[ex.id] = "weightReps"; }
+  return s;
+}
+
+test("favoritos: uno por grupo y después los más usados, en el orden de los grupos", () => {
+  const s = fresh();
+  const [impulso, explosion] = s.routines;
+  const history = [];
+  // Impulso: Plancha (ABS) ×5, Press con barra (PECHO) ×4, Press militar (HOMBROS) ×3, Fondos (TRÍCEPS) ×1
+  for (let i = 0; i < 5; i++) history.push(sessionWith(impulso, ["Plancha"].concat(i < 4 ? ["Press con barra banco plano"] : [], i < 3 ? ["Press militar con barra de pie"] : [], i < 1 ? ["Fondos en paralelas"] : []), 30 - i * 3));
+  // Explosión: Apertura (PECHO) ×3
+  for (let i = 0; i < 3; i++) history.push(sessionWith(explosion, ["Apertura con mancuernas banco plano"], 25 - i * 3));
+  store.commit((st) => { st.history = history; });
+  const favs = L.favoriteExercises(store.state, { max: 4 });
+  assert.deepEqual(favs.map((f) => f.name), ["Plancha", "Press con barra banco plano", "Apertura con mancuernas banco plano", "Press militar con barra de pie"]);
+  assert.deepEqual(favs.map((f) => f.group), ["ABS", "PECHO", "PECHO", "HOMBROS"]);   // uno por grupo, el segundo de PECHO de relleno, y todo en el orden de los grupos
+  assert.equal(favs[1].uses, 4);
+  assert.equal(favs[1].lastKg, 20);
+  assert.ok(!favs.some((f) => f.name === "Fondos en paralelas"));   // una sola vez: no es un favorito
+  assert.equal(L.favoriteExercises({ ...store.state, history: [] }).length, 0);
+});
+
+test("días desde la última sesión", () => {
+  assert.equal(L.daysSinceLastSession([]), null);
+  const now = new Date(2026, 9, 30, 12).getTime();
+  const h = [{ isCompleted: true, date: new Date(2026, 9, 20, 18).getTime() }, { isCompleted: true, date: new Date(2026, 9, 8, 18).getTime() }];
+  assert.equal(L.daysSinceLastSession(h, now), 10);
+});

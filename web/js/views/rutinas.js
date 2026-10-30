@@ -1,11 +1,11 @@
 // Pestaña RUTINAS: lista de programas, orden de rotación, archivado y alta desde el catálogo de ejercicios.
-import { h } from "../util.js";
+import { h, trim1, uuid } from "../util.js";
 import { icon } from "../icons.js";
 import { numeral, pageHeader, iconBtn, openSheet, sheetHeader, menuSheet, confirmAlert, openAlert, eyebrow, rule, toast } from "../ui.js";
 import {
-  state, toggleArchive, deleteRoutine, reorderActiveRoutines, addRoutine, routineFromTemplates, makeTemplate, addExerciseTemplate,
+  state, toggleArchive, deleteRoutine, reorderActiveRoutines, addRoutine, routineFromTemplates, makeTemplate, addExerciseTemplate, makeExercise,
 } from "../store.js";
-import { activeRoutines, allExercises, routineName, todayRoutine } from "../logic.js";
+import { activeRoutines, allExercises, favoriteExercises, routineName, todayRoutine } from "../logic.js";
 
 let showArchived = false;
 
@@ -18,7 +18,7 @@ export function rutinasView({ rerender }) {
   const root = h("div", { class: "screen-pad" });
   root.append(pageHeader(`Programas · ${active.length} activas`, "Rutinas",
     active.length > 1 ? iconBtn("sort", "Ordenar rotación", openReorder, "", 14) : null,
-    iconBtn("plus", "Nueva rutina", () => openCatalogPicker((r) => { addRoutine(r); toast(`Rutina «${r.name}» creada`); }), "accent", 16)));
+    iconBtn("plus", "Nueva rutina", openNewRoutine, "accent", 16)));
 
   root.append(h("div", { class: "list" }, ...active.map((r) => routineRow(r, r.id === todayID))));
 
@@ -43,6 +43,54 @@ function routineRow(r, isToday) {
   row.append(link, more, h("span", { class: "chev" }, icon("chevron-right", 14)));
   row.addEventListener("contextmenu", (e) => { e.preventDefault(); openRowMenu(r); });
   return row;
+}
+
+function openNewRoutine() {
+  const created = (r) => { addRoutine(r); toast(`Rutina «${r.name}» creada`); };
+  const favorites = favoriteExercises(state);
+  if (favorites.length < 3) { openCatalogPicker(created); return; }
+  menuSheet("Nueva rutina", [
+    { label: "Con mis favoritos", sub: "Los ejercicios que más hacés, según tu historial", icon: "star", action: () => openFavoritesSheet(favorites, created) },
+    { label: "Elegir ejercicios del catálogo", sub: "Armala desde cero", icon: "list", action: () => openCatalogPicker(created) },
+  ]);
+}
+
+/** Propone una rutina con los ejercicios que más hacés (se pueden destildar) y la crea con el nombre que elijas. */
+function openFavoritesSheet(favorites, onCreate) {
+  const selected = new Set(favorites.map((f) => f.name));
+  const list = h("div", {});
+  const create = h("button", { class: "btn-primary", type: "button" });
+  const paint = () => {
+    list.replaceChildren(...favorites.map((f) => {
+      const on = selected.has(f.name);
+      const kg = f.lastKg ? ` · ${trim1(f.lastKg)} kg` : "";
+      return h("button", { class: `pick${on ? " sel" : ""}`, type: "button", "aria-pressed": String(on), onclick: () => { on ? selected.delete(f.name) : selected.add(f.name); paint(); } },
+        h("span", { class: "box" }, on ? icon("check", 11) : null),
+        h("span", { class: "mid" }, h("div", { class: "n", text: f.name }),
+          h("div", { class: "m", text: `${f.group} · ${f.uses} ${f.uses === 1 ? "vez" : "veces"} · ${f.sets} × ${f.reps}${kg}` })));
+    }));
+    create.disabled = !selected.size;
+    create.textContent = selected.size ? `Crear rutina (${selected.size} ej)` : "Elegí al menos uno";
+  };
+  paint();
+  const sheet = openSheet((close) => ({
+    header: h("div", { class: "sheet-head tight" },
+      h("div", {}, eyebrow("Nueva rutina"), h("h2", { text: "Tus favoritos" }), h("p", { class: "eyebrow dim", text: "Los que más hiciste, uno por grupo" })),
+      iconBtn("x", "Cerrar", close, "sm", 14)),
+    body: list,
+    footer: h("div", { class: "sheet-foot" }, create),
+  }), { full: true });
+  create.addEventListener("click", () => askName((name) => {
+    const chosen = favorites.filter((f) => selected.has(f.name));
+    const groups = [];
+    for (const f of chosen) {
+      let g = groups.find((x) => x.name === f.group);
+      if (!g) { g = { id: uuid(), name: f.group, exercises: [] }; groups.push(g); }
+      g.exercises.push(makeExercise({ name: f.name, sets: f.sets, reps: f.reps, description: f.description, templateID: f.templateID }));
+    }
+    onCreate({ id: uuid(), t: 0, dayNumber: 0, variant: "", name, isArchived: false, muscleGroups: groups });
+    sheet.close();
+  }, "Favoritos"));
 }
 
 export function openRowMenu(r) {
@@ -172,10 +220,10 @@ export function openCatalogPicker(onCreate, { title = "Elegí ejercicios", eyebr
   paint();
 }
 
-function askName(onName) {
+function askName(onName, initial = "") {
   openAlert({
     title: "Nombre del día",
-    input: { placeholder: "Ej: Empuje, Piernas, Full body…" },
+    input: { placeholder: "Ej: Empuje, Piernas, Full body…", value: initial },
     buttons: [
       { label: "Crear", action: (value) => { if (!value.trim()) return false; onName(value.trim()); } },
       { label: "Cancelar", cancel: true },

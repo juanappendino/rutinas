@@ -31,7 +31,7 @@ export function hoyView() {
   const indexOf = new Map(exercises.map((e, i) => [e.id, i]));
 
   const root = h("div", { class: "screen-pad" });
-  root.append(hero(), isActive ? h("span") : installHint(), statsStrip());
+  root.append(hero(), isActive ? h("span") : breakNote(), isActive ? h("span") : installHint(), statsStrip());
 
   routine.muscleGroups.forEach((group) => {
     const doneInGroup = group.exercises.filter((e) => L.isExerciseCompleted(state, e)).length;
@@ -49,6 +49,15 @@ export function hoyView() {
     unsubs.push(() => clearTimeout(t));
   }
   return { el: root, dock, destroy: () => unsubs.forEach((u) => u()) };
+
+  // ---- Aviso al volver después de unos días sin entrenar
+
+  function breakNote() {
+    const days = L.daysSinceLastSession(state.history);
+    if (days == null || days < 10) return h("span");
+    return h("div", { class: "hint-card", role: "note" }, h("div", {}, h("b", { text: `Hace ${days} días que no entrenás` }),
+      h("p", { text: "Arrancá con ~10% menos de peso que la última vez, dejá 1-2 repeticiones en reserva y subí de a poco." })));
+  }
 
   // ---- Aviso para instalar la app (solo en iPhone/iPad, en el navegador)
 
