@@ -344,6 +344,46 @@ export function personalRecords(state, limit = 8) {
   return [...best.values()].sort((a, b) => b.kg - a.kg || a.name.localeCompare(b.name)).slice(0, limit);
 }
 
+const GROUP_ORDER = ["CARDIO", "ABS", "PECHO", "ESPALDA", "HOMBROS", "BÍCEPS", "TRÍCEPS", "PIERNAS"];
+const groupRank = (g) => { const i = GROUP_ORDER.indexOf(g); return i < 0 ? GROUP_ORDER.length : i; };
+
+/**
+ * Los ejercicios que más hacés, para armar una rutina: primero el más frecuente de cada grupo muscular (para cubrir todo)
+ * y después los más frecuentes que sobren (hasta `perGroup` por grupo). Se cuenta en cuántos días distintos lo hiciste.
+ * Devuelve [{name, group, uses, last, lastKg, sets, reps, description, templateID}] en el orden de los grupos.
+ */
+export function favoriteExercises(state, { max = 10, perGroup = 2, minUses = 2 } = {}) {
+  const stats = new Map();
+  for (const s of completedHistory(state.history)) {
+    const routine = findRoutine(state.routines, s);
+    if (!routine) continue;
+    for (const group of routine.muscleGroups) {
+      for (const ex of group.exercises) {
+        if (!s.completedSetsLog[ex.id]?.length) continue;
+        const key = ex.name.toLowerCase();
+        const e = stats.get(key) ?? { name: ex.name, group: group.name.toUpperCase(), days: new Set(), last: 0, lastKg: null, sets: ex.sets, reps: ex.reps, description: ex.description, templateID: ex.templateID ?? null };
+        e.days.add(startOfDay(s.date));
+        if (s.date >= e.last) { e.last = s.date; e.group = group.name.toUpperCase(); e.sets = ex.sets; e.reps = ex.reps; const kg = s.weightLog[ex.id]; e.lastKg = kg > 0 ? kg : null; }
+        stats.set(key, e);
+      }
+    }
+  }
+  const ranked = [...stats.values()].map((e) => ({ ...e, uses: e.days.size })).filter((e) => e.uses >= minUses).sort((a, b) => b.uses - a.uses || b.last - a.last);
+  const picked = [];
+  const perGroupCount = new Map();
+  const take = (e) => { picked.push(e); perGroupCount.set(e.group, (perGroupCount.get(e.group) ?? 0) + 1); };
+  for (const e of ranked) if (!perGroupCount.has(e.group) && picked.length < max) take(e);                                          // uno por grupo
+  for (const e of ranked) if (!picked.includes(e) && picked.length < max && (perGroupCount.get(e.group) ?? 0) < perGroup) take(e);   // y los más usados que sobren
+  return picked.map(({ days, ...e }) => e).sort((a, b) => groupRank(a.group) - groupRank(b.group) || b.uses - a.uses);
+}
+
+/** Días desde la última sesión terminada (null si no hay ninguna). */
+export function daysSinceLastSession(history, now = Date.now()) {
+  const done = completedHistory(history);
+  if (!done.length) return null;
+  return Math.round((startOfDay(now) - startOfDay(Math.max(...done.map((s) => s.date)))) / 86_400_000);
+}
+
 export const BAR_KG = 20;
 const PLATES = [25, 20, 15, 10, 5, 2.5, 1.25];
 
