@@ -134,7 +134,7 @@ function addDragToClose(grab, sheet, close) {
 
 export const closeTopSheet = () => { stack.at(-1)?.close(); return stack.length > 0; };
 export const closeAllSheets = () => { for (const e of [...stack]) e.close(); };
-document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeTopSheet(); });
+if (typeof document !== "undefined") document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeTopSheet(); });
 
 /** Encabezado estándar de hoja: título + botón cerrar. */
 export function sheetHeader(title, close, { eyebrowText = null, tight = false } = {}) {
@@ -187,6 +187,7 @@ export function menuSheet(title, items) {
 
 /** Aviso breve abajo de la pantalla, con una acción opcional ("Deshacer"). */
 export function toast(message, { action = null, ms = 5000 } = {}) {
+  if (typeof document === "undefined") return;   // sin DOM (tests)
   const box = $("toasts");
   if (!box) return;
   const el = h("div", { class: "toast", role: "status" }, h("span", { text: message }));

@@ -12,6 +12,7 @@ import { unlockAudio } from "./timers.js";
 import { closeAllSheets } from "./ui.js";
 import { startSync, parseCode } from "./sync.js";
 import { askJoin } from "./views/sincro.js";
+import { startComeback } from "./comeback.js";
 
 const TABS = [
   { id: "hoy", label: "HOY", href: "#/hoy" },
@@ -98,6 +99,7 @@ document.addEventListener("pointerdown", unlockAudio, { once: true });
 window.addEventListener("pagehide", saveNow);
 startSync();
 render();
+startComeback();
 // Pide al navegador que no borre los datos si hace falta liberar espacio
 try { navigator.storage?.persist?.(); } catch { /* sin soporte */ }
 handleInvite();

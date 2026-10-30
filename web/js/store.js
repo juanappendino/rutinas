@@ -27,6 +27,7 @@ function emptyState() {
     restDuration: 45,
     restAt: 0,                                               // cuándo se cambió restDuration (para sincronizar)
     orderAt: 0,                                              // cuándo se reordenaron las rutinas (para sincronizar)
+    flags: {},                                               // avisos y automatismos que ya se hicieron en este dispositivo
     bajas: { routines: {}, sessions: {}, templates: {} },   // lápidas {id: t} de lo borrado (para sincronizar)
   };
 }
@@ -70,6 +71,7 @@ export function load() {
 /** Completa lo que falte (catálogo, rutinas por defecto, descripciones) igual que el arranque de la app iOS. */
 export function normalize() {
   state.bajas = { routines: {}, sessions: {}, templates: {}, ...(state.bajas ?? {}) };
+  state.flags ??= {};
   for (const r of state.routines) r.t ??= 0;
   for (const t of state.exerciseCatalog) t.t ??= 0;
   deduplicateCatalog();
@@ -332,6 +334,21 @@ export function setRestDuration(seconds) {
 
 export function addExerciseTemplate(t) {
   commit((s) => { s.exerciseCatalog.push({ ...t, t: Date.now() }); });
+}
+
+export function setFlag(name) {
+  commit((s) => { s.flags[name] = Date.now(); });
+}
+
+/** Arma una rutina con los ejercicios favoritos (ver favoriteExercises en logic.js), agrupados por músculo en el orden recibido. */
+export function routineFromFavorites(name, favorites) {
+  const groups = [];
+  for (const f of favorites) {
+    let g = groups.find((x) => x.name === f.group);
+    if (!g) { g = { id: uuid(), name: f.group, exercises: [] }; groups.push(g); }
+    g.exercises.push(makeExercise({ name: f.name, sets: f.sets, reps: f.reps, description: f.description, templateID: f.templateID }));
+  }
+  return { id: uuid(), t: 0, dayNumber: 0, variant: "", name: name.trim(), isArchived: false, muscleGroups: groups };
 }
 
 /** Arma una rutina a partir de ejercicios del catálogo, agrupados por músculo (orden alfabético, como la app). */

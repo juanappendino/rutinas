@@ -3,7 +3,7 @@ import { h, trim1, uuid } from "../util.js";
 import { icon } from "../icons.js";
 import { numeral, pageHeader, iconBtn, openSheet, sheetHeader, menuSheet, confirmAlert, openAlert, eyebrow, rule, toast } from "../ui.js";
 import {
-  state, toggleArchive, deleteRoutine, reorderActiveRoutines, addRoutine, routineFromTemplates, makeTemplate, addExerciseTemplate, makeExercise,
+  state, toggleArchive, deleteRoutine, reorderActiveRoutines, addRoutine, routineFromTemplates, makeTemplate, addExerciseTemplate, routineFromFavorites,
 } from "../store.js";
 import { activeRoutines, allExercises, favoriteExercises, routineName, todayRoutine } from "../logic.js";
 
@@ -81,14 +81,7 @@ function openFavoritesSheet(favorites, onCreate) {
     footer: h("div", { class: "sheet-foot" }, create),
   }), { full: true });
   create.addEventListener("click", () => askName((name) => {
-    const chosen = favorites.filter((f) => selected.has(f.name));
-    const groups = [];
-    for (const f of chosen) {
-      let g = groups.find((x) => x.name === f.group);
-      if (!g) { g = { id: uuid(), name: f.group, exercises: [] }; groups.push(g); }
-      g.exercises.push(makeExercise({ name: f.name, sets: f.sets, reps: f.reps, description: f.description, templateID: f.templateID }));
-    }
-    onCreate({ id: uuid(), t: 0, dayNumber: 0, variant: "", name, isArchived: false, muscleGroups: groups });
+    onCreate(routineFromFavorites(name, favorites.filter((f) => selected.has(f.name))));
     sheet.close();
   }, "Favoritos"));
 }

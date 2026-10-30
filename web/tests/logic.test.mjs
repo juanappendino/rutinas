@@ -328,3 +328,29 @@ test("días desde la última sesión", () => {
   const h = [{ isCompleted: true, date: new Date(2026, 9, 20, 18).getTime() }, { isCompleted: true, date: new Date(2026, 9, 8, 18).getTime() }];
   assert.equal(L.daysSinceLastSession(h, now), 10);
 });
+
+test("rutina de vuelta: se arma sola una vez tras 10+ días y se puede deshacer", async () => {
+  const { comebackFavorites, maybeCreateComeback } = await import("../js/comeback.js");
+  const s = fresh();
+  store.commit((st) => { st.hasOnboarded = true; });
+  const [impulso, explosion] = s.routines;
+  const build = (lastDaysAgo) => {
+    const history = [];
+    for (let i = 0; i < 4; i++) history.push(sessionWith(impulso, ["Plancha", "Press con barra banco plano", "Press militar con barra de pie"], lastDaysAgo + 12 + i * 3));
+    history.push(sessionWith(explosion, ["Apertura con mancuernas banco plano"], lastDaysAgo + 3), sessionWith(explosion, ["Apertura con mancuernas banco plano"], lastDaysAgo));
+    return history;
+  };
+  store.commit((st) => { st.history = build(4); });
+  assert.equal(comebackFavorites(), null);   // la última sesión fue hace 4 días: no hace falta
+  store.commit((st) => { st.history = build(12); });
+  assert.ok(comebackFavorites());
+  const before = store.state.routines.length;
+  assert.equal(maybeCreateComeback(), true);
+  const created = store.state.routines.at(-1);
+  assert.equal(created.name, "Vuelta");
+  assert.equal(store.state.routines.length, before + 1);
+  assert.equal(L.nextWorkout(store.state).id, created.id);   // queda como la próxima
+  assert.equal(maybeCreateComeback(), false);                // una sola vez
+  store.deleteRoutine(created);                              // "Deshacer"
+  assert.equal(maybeCreateComeback(), false);                // y no la vuelve a armar
+});
