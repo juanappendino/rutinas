@@ -5,6 +5,7 @@ import { numeral, pageHeader, iconBtn, openSheet, sheetHeader, menuSheet, confir
 import {
   state, toggleArchive, deleteRoutine, reorderActiveRoutines, addRoutine, routineFromTemplates, makeTemplate, addExerciseTemplate, routineFromFavorites,
 } from "../store.js";
+import { addHomeRoutine } from "../casa.js";
 import { activeRoutines, allExercises, favoriteExercises, routineName, todayRoutine } from "../logic.js";
 
 let showArchived = false;
@@ -48,9 +49,9 @@ function routineRow(r, isToday) {
 function openNewRoutine() {
   const created = (r) => { addRoutine(r); toast(`Rutina «${r.name}» creada`); };
   const favorites = favoriteExercises(state);
-  if (favorites.length < 3) { openCatalogPicker(created); return; }
   menuSheet("Nueva rutina", [
-    { label: "Con mis favoritos", sub: "Los ejercicios que más hacés, según tu historial", icon: "star", action: () => openFavoritesSheet(favorites, created) },
+    ...(favorites.length >= 3 ? [{ label: "Con mis favoritos", sub: "Los ejercicios que más hacés, según tu historial", icon: "star", action: () => openFavoritesSheet(favorites, created) }] : []),
+    { label: "Rutina en casa", sub: "Circuito de 35 min con una kettlebell de 8 kg", icon: "dumbbell", action: () => { if (state.routines.some((r) => r.name === "Casa")) { toast("Ya tenés la rutina «Casa»"); return; } addHomeRoutine({ announce: false, makeNext: false }); toast("Rutina «Casa» creada"); } },
     { label: "Elegir ejercicios del catálogo", sub: "Armala desde cero", icon: "list", action: () => openCatalogPicker(created) },
   ]);
 }

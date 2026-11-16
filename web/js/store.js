@@ -340,6 +340,14 @@ export function setFlag(name) {
   commit((s) => { s.flags[name] = Date.now(); });
 }
 
+/** Arma una rutina a partir de una definición fija: grupos [{name, exercises:[{name, sets, reps, description}]}]. */
+export function routineFromPreset(name, groups) {
+  return {
+    id: uuid(), t: 0, dayNumber: 0, variant: "", name, isArchived: false,
+    muscleGroups: groups.map((g) => ({ id: uuid(), name: g.name, exercises: g.exercises.map((e) => makeExercise(e)) })),
+  };
+}
+
 /** Arma una rutina con los ejercicios favoritos (ver favoriteExercises en logic.js), agrupados por músculo en el orden recibido. */
 export function routineFromFavorites(name, favorites) {
   const groups = [];

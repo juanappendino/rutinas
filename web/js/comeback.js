@@ -3,6 +3,7 @@
 import { addRoutine, deleteRoutine, overrideNextRoutine, routineFromFavorites, setFlag, state, subscribe } from "./store.js";
 import { activeRoutines, daysSinceLastSession, favoriteExercises } from "./logic.js";
 import { toast } from "./ui.js";
+import { maybeAddHome } from "./casa.js";
 
 const FLAG = "rutinaDeVuelta2";   // v2: en la primera versión el aviso solo se podía cerrar con «Deshacer» y se perdía la rutina sin querer
 const NAME = "Vuelta";
@@ -37,5 +38,6 @@ export function maybeCreateComeback() {
 /** Se revisa al abrir y cada vez que llegan datos nuevos (por ejemplo, el historial de la sincronización). */
 export function startComeback() {
   maybeCreateComeback();
-  subscribe(() => maybeCreateComeback());
+  maybeAddHome();
+  subscribe(() => { maybeCreateComeback(); maybeAddHome(); });
 }
