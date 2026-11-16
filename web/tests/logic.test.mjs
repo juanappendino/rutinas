@@ -354,3 +354,33 @@ test("rutina de vuelta: se arma sola una vez tras 10+ días y se puede deshacer"
   store.deleteRoutine(created);                              // "Deshacer"
   assert.equal(maybeCreateComeback(), false);                // y no la vuelve a armar
 });
+
+test("rutina «Casa»: ejercicios con descripción, tipo de serie correcto y alta una sola vez", async () => {
+  const { HOME_GROUPS, maybeAddHome } = await import("../js/casa.js");
+  const all = HOME_GROUPS.flatMap((g) => g.exercises);
+  assert.equal(all.length, 10);
+  for (const e of all) {
+    assert.ok(e.description.length > 60, `${e.name}: falta la descripción`);
+    assert.ok(e.sets >= 1);
+  }
+  const type = (name) => L.inferSetType(all.find((e) => e.name === name).reps);
+  assert.equal(type("Plancha"), "time");
+  assert.equal(type("Entrada en calor"), "time");
+  assert.equal(type("Sentadilla goblet con kettlebell"), "weightReps");
+  assert.equal(type("Remo a una mano con kettlebell"), "weightReps");
+
+  const s = fresh();
+  assert.equal(maybeAddHome(), false);                 // sin onboarding terminado no hace nada
+  store.commit((st) => { st.hasOnboarded = true; });
+  const before = s.routines.length;
+  assert.equal(maybeAddHome(), true);
+  const casa = store.state.routines.at(-1);
+  assert.equal(casa.name, "Casa");
+  assert.equal(store.state.routines.length, before + 1);
+  assert.equal(L.allExercises(casa).length, 10);
+  assert.ok(L.allExercises(casa).every((e) => e.description));
+  assert.equal(L.nextWorkout(store.state).id, casa.id);
+  assert.equal(maybeAddHome(), false);                 // una sola vez
+  store.deleteRoutine(casa);
+  assert.equal(maybeAddHome(), false);                 // ni después de borrarla
+});

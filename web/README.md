@@ -46,6 +46,7 @@ Cloudflare Workers (`wrangler.jsonc` en la raíz): deploy command `npx wrangler 
 - **Progreso por ejercicio:** también para cinta y planchas (distancia, velocidad y tiempo), no solo para ejercicios con peso.
 - **Hoy:** tiempo transcurrido de la sesión, la lista se desplaza sola al ejercicio siguiente, calculadora de discos por lado en ejercicios con barra, y "Compartir" el resumen al terminar.
 - **Rutina con tus favoritos:** RUTINAS → + → "Con mis favoritos" propone los ejercicios que más hiciste (uno por grupo y los más repetidos de relleno), con series, repeticiones y última carga; se destildan los que no querés. Al volver tras 10 días o más sin entrenar, la app arma sola una rutina «Vuelta» con esos favoritos (una vez por dispositivo, con aviso y Deshacer) y la deja como la próxima; HOY avisa que conviene arrancar con ~10% menos de peso.
+- **Rutina «Casa»:** circuito de unos 35 minutos con una kettlebell de 8 kg, cada ejercicio con su descripción de cómo hacerlo. Se suma sola una vez por dispositivo (con aviso y Deshacer) y también está en RUTINAS → + → «Rutina en casa». Se define en `js/casa.js`.
 - **Rotación:** "Orden de rotación" ahora sí cambia qué rutina toca después (la app iOS ordena siempre por número de día). El orden se sincroniza.
 - **Datos:** pide almacenamiento persistente al navegador, avisa cómo instalarla en iPhone, e indica el estado de la sincronización en el botón de Datos.
 
